@@ -41,6 +41,7 @@ from modules.linear import Linear
 from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
+from modules.convolution import Convolution
 
 
 
@@ -49,12 +50,28 @@ FLAGS = None
 
 def seq_nn(x):
 
-    nn = Sequential([Linear(784,500, name='linear1'), \
-                     Tanh(name='tanh1'),\
-                     Linear(500, 10, name='linear2'), \
-                     Tanh(name='tanh2'),\
+    nn = Sequential([Linear(784,500, name='linear1'), 
+                     Tanh(name='tanh1'),
+                     Linear(500, 10, name='linear2'), 
+                     Tanh(name='tanh2'),
                      Softmax(name='softmax1')])
     return nn, nn.forward(x)
+
+def seq_conv_nn(x):
+
+    nn = Sequential([Convolution(input_shape=(28,28,1),output_dim=32, name='conv1'), 
+                     Tanh(name='tanh1'), 
+                     Convolution(input_shape=(28,28,32),output_dim=64, name='conv2'),
+                     Tanh(name='tanh2'),  
+                     Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
+                     Tanh(name='tanh3'), 
+                     Linear(256, 10, name='linear1'), 
+                     Softmax(name='softmax1')])
+    # import pdb
+    # pdb.set_trace()
+
+    return nn, nn.forward(x)
+
 
 
 
@@ -86,9 +103,9 @@ def train():
         keep_prob = tf.placeholder(tf.float32)
     
     with tf.variable_scope('model'):
+        #nn, y = seq_nn(x)
+        #RELEVANCE = nn.lrp(y, 'simple', 1.0)
         nn, y = seq_nn(x)
-        RELEVANCE = nn.lrp(y, 'simple', 1.0)
-        
 
     with tf.name_scope('cross_entropy'):
         diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
@@ -126,21 +143,23 @@ def train():
     for i in range(FLAGS.max_steps):
         if i % 10 == 0:  # test-set accuracy
             test_inp = feed_dict(False)
-            summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
+            #summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
+            summary, acc = sess.run([merged, accuracy], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
             print('Accuracy at step %s: %f' % (i, acc))
         else:  
             inp = feed_dict(True)
-            summary, _ , relevance_= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
+            #summary, _ , relevance_= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
+            summary, _ = sess.run([merged, train_step], feed_dict=inp)
             train_writer.add_summary(summary, i)
 
-    test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
-    test_writer.add_summary(test_img_summary)
-    test_writer.flush()
+    # test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
+    # test_writer.add_summary(test_img_summary)
+    # test_writer.flush()
 
-    train_img_summary = visualize(relevance_, inp[inp.keys()[0]])
-    train_writer.add_summary(train_img_summary)
-    train_writer.flush()
+    # train_img_summary = visualize(relevance_, inp[inp.keys()[0]])
+    # train_writer.add_summary(train_img_summary)
+    # train_writer.flush()
 
     train_writer.close()
     test_writer.close()

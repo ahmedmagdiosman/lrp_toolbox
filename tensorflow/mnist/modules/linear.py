@@ -17,12 +17,19 @@ class Linear(Module):
         self.name = name
         
         self.weights_shape = [self.input_dim, self.output_dim]
-        with tf.variable_scope(name):
+        with tf.variable_scope(self.name):
             self.weights = variables.weights(self.weights_shape)
             self.biases = variables.biases(self.output_dim)
 
     def forward(self, input_tensor):
         self.input_tensor = input_tensor
+        inp_shape = self.input_tensor.get_shape().as_list()
+                
+        #import pdb;pdb.set_trace()
+        if len(inp_shape)!=2:
+            import numpy as np
+            self.input_tensor = tf.reshape(self.input_tensor,[-1, np.prod(inp_shape[1:])])
+
         with tf.name_scope('activations'):
             linear = tf.matmul(self.input_tensor, self.weights)
             self.activations = tf.nn.bias_add(linear, self.biases)
