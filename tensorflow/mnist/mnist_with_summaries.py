@@ -35,98 +35,24 @@ import sys
 sys.path.append("../../python")
 import render
 import numpy as np
-#from layers import linear
 import pdb
-from linear import linear
+from modules.sequential import Sequential
+from modules.linear import Linear
+from modules.softmax import Softmax
+
 
 FLAGS = None
 
-#def simple_lrp(R, X, W, b):
-def simple_lrp(R, Z, b):
-    #Z = tf.expand_dims(W, 0) * tf.expand_dims(X, -1)
-    #pdb.set_trace()
-    
-    Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(b, 0), 0)
-    
-    return tf.reduce_sum((Z / Zs) * tf.expand_dims(R, 1),2)
 
- 
-# We can't initialize these variables to 0 - the network will get stuck.
-def weight_variable(shape):
-    """Create a weight variable with appropriate initialization."""
-    initial = tf.truncated_normal(shape, stddev=0.1)
-    return tf.Variable(initial)
+def seq_nn(x):
 
-def bias_variable(shape):
-    """Create a bias variable with appropriate initialization."""
-    initial = tf.constant(0.1, shape=shape)
-    return tf.Variable(initial)
-
-def variable_summariesvariable_summaries(var, name):
-    """Attach a lot of summaries to a Tensor."""
-    with tf.name_scope('summaries'):
-      mean = tf.reduce_mean(var)
-      tf.scalar_summary('mean/' + name, mean)
-      with tf.name_scope('stddev'):
-        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-      tf.scalar_summary('stddev/' + name, stddev)
-      tf.scalar_summary('max/' + name, tf.reduce_max(var))
-      tf.scalar_summary('min/' + name, tf.reduce_min(var))
-      tf.histogram_summary(name, var)
-
-def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu, relevance=True, dropout=False, keep_prob=0.8):
-    """Reusable code for making a simple neural net layer.
-
-    It does a matrix multiply, bias add, and then uses relu to nonlinearize.
-    It also sets up name scoping so that the resultant graph is easy to read,
-    and adds a number of summary ops.
-    """
-    # Adding a name scope ensures logical grouping of the layers in the graph.
-    with tf.name_scope(layer_name):
-      # This Variable will hold the state of the weights for the layer
-      with tf.name_scope('weights'):
-        weights = weight_variable([input_dim, output_dim])
-        #variable_summaries(weights, layer_name + '/weights')
-      with tf.name_scope('biases'):
-        biases = bias_variable([output_dim])
-        #variable_summaries(biases, layer_name + '/biases')
-      with tf.name_scope('Wx_plus_b'):
-        preactivate = tf.matmul(input_tensor, weights) + biases
-        tf.histogram_summary(layer_name + '/pre_activations', preactivate)
-      activations = act(preactivate, name='activation')
-      tf.histogram_summary(layer_name + '/activations', activations)
-      
-    if dropout:
-      with tf.name_scope('dropout'):
-        
-        tf.scalar_summary('dropout_keep_probability', keep_prob)
-        activations = tf.nn.dropout(activations, keep_prob)
-    return activations
+    nn = Sequential([Linear(784,500, name='linear1'), \
+                     Linear(500, 10, name='linear2'), \
+                     Softmax(name='softmax1')])
+    return nn, nn.forward(x)
 
 
-def forward(x):
-    # hidden1 = nn_layer(x, 784, 500, 'layer1')
-    # y = nn_layer(hidden1, 500, 10, 'layer2', act=tf.identity)
-    pdb.set_trace()
-    hidden1 = linear(x, 500, name='layer1')
-    y = linear(hidden1, 10, activation_fn = tf.identity, name='layer2')
-  
-    return [y, hidden1]
 
-def lrp(activations):
-    print('Relevancing .. ')
-    #pdb.set_trace()
-    noLayers = len(activations) - 1
-    Relevances = tf.nn.softmax(activations[0]) * activations[0]
-    for i in range(noLayers):
-        for v in tf.trainable_variables():
-            if v.name == 'model/layer'+str(noLayers-i)+'/weights:0':
-                weights = v.value()
-            if v.name == 'model/layer'+str(noLayers-i)+'/biases:0':
-                biases = v.value()
-        Z = tf.expand_dims(weights, 0) * tf.expand_dims(activations[i+1], -1)
-        Relevances = simple_lrp(Relevances, Z, biases)
-    return Relevances
 
 def visualize(relevances, images_tensor):
     #pdb.set_trace()
@@ -137,8 +63,6 @@ def visualize(relevances, images_tensor):
     for h,heat in enumerate(heatmap):
         input_image = input_images[h]
         maps = render.hm_to_rgb(heat, input_image, scaling = 3, sigma = 2)
-        #import matplotlib.pyplot as plt;
-        #plt.imsave('relevances/relevance'+str(h)+'.jpg',maps)
         heatmaps.append(maps)
     R = np.array(heatmaps)
     with tf.name_scope('input_reshape'):
@@ -146,13 +70,10 @@ def visualize(relevances, images_tensor):
     return img.eval()
 
 def train():
-    # Import data
+  # Import data
   mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True, fake_data=FLAGS.fake_data)
 
   with tf.Session() as sess:
-
-    # Create a multilayer model.
-  
     # Input placeholders
     with tf.name_scope('input'):
         x = tf.placeholder(tf.float32, [None, 784], name='x-input')
@@ -160,9 +81,9 @@ def train():
         keep_prob = tf.placeholder(tf.float32)
     
     with tf.variable_scope('model'):
-        activations = forward(x)
-        RELEVANCE = lrp(activations+[x])
-        y = activations[0] 
+        nn, y = seq_nn(x)
+        RELEVANCE = nn.lrp(y, 'simple', 1.0)
+        
 
     with tf.name_scope('cross_entropy'):
         diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
