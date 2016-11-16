@@ -39,6 +39,9 @@ import pdb
 from modules.sequential import Sequential
 from modules.linear import Linear
 from modules.softmax import Softmax
+from modules.relu import Relu
+from modules.tanh import Tanh
+
 
 
 FLAGS = None
@@ -47,7 +50,9 @@ FLAGS = None
 def seq_nn(x):
 
     nn = Sequential([Linear(784,500, name='linear1'), \
+                     Tanh(name='tanh1'),\
                      Linear(500, 10, name='linear2'), \
+                     Tanh(name='tanh2'),\
                      Softmax(name='softmax1')])
     return nn, nn.forward(x)
 
@@ -82,7 +87,7 @@ def train():
     
     with tf.variable_scope('model'):
         nn, y = seq_nn(x)
-        RELEVANCE = nn.lrp(y, 'w^2', 1.0)
+        RELEVANCE = nn.lrp(y, 'simple', 1.0)
         
 
     with tf.name_scope('cross_entropy'):

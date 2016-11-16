@@ -3,19 +3,20 @@ from module import Module
 
 
 
-class relu(Module):
+class Relu(Module):
     '''
     Relu Layer
     '''
 
-    def __init__(self):
+    def __init__(self, name):
         Module.__init__(self)
-
+        self.name = name
     def forward(self,input_tensor):
-        with tf.variable_scope(name):
+        self.input_tensor = input_tensor
+        with tf.variable_scope(self.name):
             with tf.name_scope('activations'):
-                self.activations = tf.nn.relu(input_tensor, name='relu')
-            tf.histogram_summary(name + '/activations', self.activations)
+                self.activations = tf.nn.relu(self.input_tensor, name = self.name)
+            tf.histogram_summary(self.name + '/activations', self.activations)
         return self.activations
 
     def clean(self):
