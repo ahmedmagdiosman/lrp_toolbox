@@ -131,6 +131,6 @@ class Sequential(Module):
 
         for m in self.modules[::-1]:
             #import pdb;pdb.set_trace()
-            R = m.lrp(R)
-            #R = m.lrp(R,lrp_var,param)
+            #R = m.lrp(R)
+            R = m.lrp(R,lrp_var,param)
         return R

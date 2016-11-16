@@ -22,7 +22,7 @@ class Softmax(Module):
     def clean(self):
         self.activations = None
 
-    def lrp(self,R):
+    def lrp(self,R,*args,**kwargs):
         # component-wise operations within this layer
         # ->
         # just propagate R further down.

@@ -13,9 +13,7 @@ class Linear(Module):
         Module.__init__(self)
 
         self.input_dim = input_dim
-        #self.input_shape = self.input_tensor.get_shape().as_list()
         self.output_dim = output_dim
-        #self.check_input_shape()
         self.name = name
         
         self.weights_shape = [self.input_dim, self.output_dim]
@@ -37,11 +35,74 @@ class Linear(Module):
             raise ValueError('Expected dimension of input tensor: 2')
 
 
-    def lrp(self, R):
-        return self._simple_lrp(R)
+    # def lrp(self, R):
+    #     return self._simple_lrp(R)
         
     def _simple_lrp(self, R):
         self.R = R
         Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
         Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(self.biases, 0), 0)
         return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
+
+    
+    def _flat_lrp(self,R):
+        '''
+        distribute relevance for each output evenly to the output neurons' receptive fields.
+        note that for fully connected layers, this results in a uniform lower layer relevance map.
+        '''
+        self.R= R
+        Z = tf.ones_like(tf.expand_dims(self.weights, 0))
+        Zs = tf.expand_dims( tf.reduce_sum(Z, 1), 1)
+        return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
+                         
+    def _ww_lrp(self,R):
+        '''
+        LRR according to Eq(12) in https://arxiv.org/pdf/1512.02479v1.pdf
+        '''
+        self.R= R
+        Z = tf.square( tf.expand_dims(self.weights,0) )
+        Zs = tf.expand_dims( tf.reduce_sum(Z, 1), 1)
+        return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
+        
+    def _epsilon_lrp(self,R,epsilon):
+        '''
+        LRP according to Eq(58) in DOI: 10.1371/journal.pone.0130140
+        '''
+        self.R= R
+        Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
+        Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(self.biases, 0), 0)
+        Zs = Zs + tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs)*-1, tf.ones_like(Zs))
+        return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
+        
+
+        # add slack to denominator. we require sign(0) = 1. since np.sign(0) = 0 would defeat the purpose of the numeric stabilizer we do not use it.
+        Zs += epsilon * ((Zs >= 0)*2-1)
+        
+
+    def _alphabeta_lrp(self,R,alpha):
+        '''
+        LRP according to Eq(60) in DOI: 10.1371/journal.pone.0130140
+        '''
+        self.R= R
+        beta = 1 - alpha
+        Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
+
+        if not alpha == 0:
+            Zp = tf.select(tf.greater(Z,0),Z, tf.zeros_like(Z))
+            term2 = tf.expand_dims(tf.expand_dims(tf.select(tf.greater(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
+            term1 = tf.expand_dims( tf.reduce_sum(Zp, 1), 1)
+            Zsp = term1 + term2
+            Ralpha = alpha + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+        else:
+            Ralpha = 0
+
+        if not beta == 0:
+            Zn = tf.select(tf.lesser(Z,0),Z, tf.zeros_like(Z))
+            term2 = tf.expand_dims(tf.expand_dims(tf.select(tf.lesser(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
+            term1 = tf.expand_dims( tf.reduce_sum(Zn, 1), 1)
+            Zsp = term1 + term2
+            Rbeta = beta + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+        else:
+            Rbeta = 0
+
+        return Ralpha + Rbeta

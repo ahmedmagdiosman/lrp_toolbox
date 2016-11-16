@@ -82,7 +82,7 @@ def train():
     
     with tf.variable_scope('model'):
         nn, y = seq_nn(x)
-        RELEVANCE = nn.lrp(y, 'simple', 1.0)
+        RELEVANCE = nn.lrp(y, 'w^2', 1.0)
         
 
     with tf.name_scope('cross_entropy'):
