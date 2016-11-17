@@ -3,6 +3,7 @@ This is a tensorflow wrapper for the LRP Toolbox which provides simple and acces
 To run the given example 
 
    `cd mnist`
+   
    `python mnist_with_summaries.py --relevance_bool=True`
    
 
