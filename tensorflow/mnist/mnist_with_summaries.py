@@ -24,36 +24,46 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
-
-import tensorflow as tf
-
-#from tensorflow.examples.tutorials.mnist
-import input_data
-
 import sys
-sys.path.append("../../python")
-import render
-import numpy as np
-import pdb
+sys.path.append("..")
 from modules.sequential import Sequential
 from modules.linear import Linear
 from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
 from modules.convolution import Convolution
+import modules.render as render
+import input_data
+
+import argparse
+import tensorflow as tf
+import numpy as np
+import pdb
+
+flags = tf.flags
+logging = tf.logging
+
+flags.DEFINE_integer("max_steps", 1000,'Number of steps to run trainer.')
+flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_batch_size", 200,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
+flags.DEFINE_float("learning_rate", 0.001,'Initial learning rate')
+flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
+flags.DEFINE_string("data_dir", '../data','Directory for storing data')
+flags.DEFINE_string("summaries_dir", '../mnist_logs','Summaries directory')
+flags.DEFINE_boolean("relevance_bool", False,'Compute relevances')
 
 
-
-FLAGS = None
+FLAGS = flags.FLAGS
 
 
 def seq_nn(x):
 
     nn = Sequential([Linear(784,500, name='linear1'), 
-                     Tanh(name='tanh1'),
-                     Linear(500, 10, name='linear2'), 
-                     Tanh(name='tanh2'),
+                     Relu(name='tanh1'),
+                     Linear(500, 100, name='linear2'), 
+                     Relu(name='tanh2'),
+                     Linear(100, 10, name='linear3'), 
                      Softmax(name='softmax1')])
     return nn, nn.forward(x)
 
@@ -67,9 +77,6 @@ def seq_conv_nn(x):
                      Tanh(name='tanh3'), 
                      Linear(256, 10, name='linear1'), 
                      Softmax(name='softmax1')])
-    # import pdb
-    # pdb.set_trace()
-
     return nn, nn.forward(x)
 
 
@@ -77,7 +84,6 @@ def seq_conv_nn(x):
 
 
 def visualize(relevances, images_tensor):
-    #pdb.set_trace()
     n, dim = relevances.shape
     heatmap = relevances.reshape([n,28,28,1])
     input_images = images_tensor.reshape([n,28,28,1])
@@ -93,7 +99,7 @@ def visualize(relevances, images_tensor):
 
 def train():
   # Import data
-  mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True, fake_data=FLAGS.fake_data)
+  mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
 
   with tf.Session() as sess:
     # Input placeholders
@@ -103,10 +109,11 @@ def train():
         keep_prob = tf.placeholder(tf.float32)
     
     with tf.variable_scope('model'):
-        #nn, y = seq_nn(x)
-        #RELEVANCE = nn.lrp(y, 'simple', 1.0)
         nn, y = seq_nn(x)
-
+        #nn, y = seq_conv_nn(x)
+        if FLAGS.relevance_bool:
+            RELEVANCE = nn.lrp(y, 'simple', 1.0)
+        
     with tf.name_scope('cross_entropy'):
         diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
         with tf.name_scope('total'):
@@ -132,8 +139,8 @@ def train():
 
     def feed_dict(train):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-        if train or FLAGS.fake_data:
-            xs, ys = mnist.train.next_batch(FLAGS.batch_size, fake_data=FLAGS.fake_data)
+        if train:
+            xs, ys = mnist.train.next_batch(FLAGS.batch_size)
             k = FLAGS.dropout
         else:
             xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
@@ -141,25 +148,30 @@ def train():
         return {x: xs, y_: ys, keep_prob: k}
 
     for i in range(FLAGS.max_steps):
-        if i % 10 == 0:  # test-set accuracy
+        if i % FLAGS.test_every == 0:  # test-set accuracy
             test_inp = feed_dict(False)
-            #summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
-            summary, acc = sess.run([merged, accuracy], feed_dict=test_inp)
+            if FLAGS.relevance_bool:
+                summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
+            else:
+                summary, acc = sess.run([merged, accuracy], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
             print('Accuracy at step %s: %f' % (i, acc))
         else:  
             inp = feed_dict(True)
-            #summary, _ , relevance_= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
-            summary, _ = sess.run([merged, train_step], feed_dict=inp)
+            if FLAGS.relevance_bool:
+                summary, _ , relevance_train= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
+            else:
+                summary, _ = sess.run([merged, train_step], feed_dict=inp)
             train_writer.add_summary(summary, i)
 
-    # test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
-    # test_writer.add_summary(test_img_summary)
-    # test_writer.flush()
+    if FLAGS.relevance_bool:
+        test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
+        test_writer.add_summary(test_img_summary)
+        test_writer.flush()
 
-    # train_img_summary = visualize(relevance_, inp[inp.keys()[0]])
-    # train_writer.add_summary(train_img_summary)
-    # train_writer.flush()
+        train_img_summary = visualize(relevance_train, inp[inp.keys()[0]])
+        train_writer.add_summary(train_img_summary)
+        train_writer.flush()
 
     train_writer.close()
     test_writer.close()
@@ -173,23 +185,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--fake_data', nargs='?', const=True, type=bool,
-                      default=False,
-                      help='If true, uses fake data for unit testing.')
-    parser.add_argument('--max_steps', type=int, default=500,
-                      help='Number of steps to run trainer.')
-    parser.add_argument('--batch_size', type=int, default=50,
-                      help='Number of steps to run trainer.')
-    parser.add_argument('--test_batch_size', type=int, default=100,
-                      help='Number of steps to run trainer.')
-    parser.add_argument('--learning_rate', type=float, default=0.001,
-                      help='Initial learning rate')
-    parser.add_argument('--dropout', type=float, default=0.9,
-                      help='Keep probability for training dropout.')
-    parser.add_argument('--data_dir', type=str, default='/tmp/data',
-                      help='Directory for storing data')
-    parser.add_argument('--summaries_dir', type=str, default='/tmp/mnist_logs',
-                      help='Summaries directory')
-    FLAGS = parser.parse_args()
     tf.app.run()
