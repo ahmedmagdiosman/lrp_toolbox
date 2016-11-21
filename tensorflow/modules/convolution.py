@@ -67,40 +67,48 @@ class Convolution(Module):
         hf,wf,df,NF = self.weights_shape
         _, hstride, wstride, _ = self.strides
 
-        out_N, out_rows, out_cols, out_depth = self.activations.get_shape().as_list()
-        in_N, in_rows, in_cols, in_depth = self.input_tensor.get_shape().as_list()
+        out_N, out_h, out_w, out_depth = self.activations.get_shape().as_list()
+        in_N, in_h, in_w, in_depth = self.input_tensor.get_shape().as_list()
 
         if self.pad == 'SAME':
-            pr = (Hout -1) * hstride + hf - in_rows
-            pc =  (Wout -1) * wstride + hf - in_cols
-            pr = pr/2
-            pc = pc - (pc/2)
-            self.pad_input_tensor = tf.pad(self.input_tensor, [[0,0],[pr,pr], [pc,pc],[0,0]], "CONSTANT")
-
-        pad_in_N, pad_in_rows, pad_in_cols, pad_in_depth = self.pad_input_tensor.get_shape().as_list()
+            pr = (Hout -1) * hstride + hf - in_h
+            pc =  (Wout -1) * wstride + wf - in_w
+            # pr = pr/2
+            # pc = pc - (pc/2)
+            self.pad_input_tensor = tf.pad(self.input_tensor, [[0,0],[pr/2, (pr-(pr/2))],[pc/2,(pc - (pc/2))],[0,0]], "CONSTANT")
+        
+            #self.pad_input_tensor = self.input_tensor
+        pad_in_N, pad_in_h, pad_in_w, pad_in_depth = self.pad_input_tensor.get_shape().as_list()
         
         out = []
         term1 = tf.expand_dims(self.weights, 0)
         t2 = tf.expand_dims(tf.expand_dims(tf.expand_dims(self.biases, 0), 0), 0)
         for i in xrange(Hout):
             for j in xrange(Wout):
+                import pdb
+                
                 input_slice = self.pad_input_tensor[:, i*hstride:i*hstride+hf , j*wstride:j*wstride+wf , : ]
-                if input_slice.get_shape().as_list()[1] == input_slice.get_shape().as_list()[2]:
-                    term2 =  tf.expand_dims(input_slice, -1)
-                    Z = term1 * term2
-                    t1 = tf.reduce_sum(Z, [1,2,3], keep_dims=True)
-                    Zs = t1 + t2
-                    stabilizer = 1e-8*(tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs)*-1, tf.ones_like(Zs)))
-                    Zs += stabilizer
-                    result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 1), 4)
+                #print input_slice.get_shape()
+                #pdb.set_trace()
+                term2 =  tf.expand_dims(input_slice, -1)
+                Z = term1 * term2
+                t1 = tf.reduce_sum(Z, [1,2,3], keep_dims=True)
+                Zs = t1 + t2
+                stabilizer = 1e-8*(tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs, dtype=tf.float32), tf.ones_like(Zs, dtype=tf.float32)*-1))
+                #Zs += stabilizer
+                result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 1), 4)
 
-                    #pad each result to the dimension of the out
-                    pad_right = pad_in_rows - (i*hstride+hf) if( pad_in_rows - (i*hstride+hf))>0 else 0
-                    pad_left = i*hstride
-                    pad_bottom = pad_in_cols - (j*wstride+wf) if ( pad_in_cols - (j*wstride+wf) > 0) else 0
-                    pad_up = j*wstride
-
-                    result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
-                    out.append(result)
-                   
-        return tf.reduce_sum(tf.pack(out),0)[:, pr:in_rows+pr, pc:in_cols+pc,:]
+                #pad each result to the dimension of the out
+                pad_right = pad_in_h - (i*hstride+hf) if( pad_in_h - (i*hstride+hf))>0 else 0
+                pad_left = i*hstride
+                pad_bottom = pad_in_w - (j*wstride+wf) if ( pad_in_w - (j*wstride+wf) > 0) else 0
+                pad_up = j*wstride
+                
+                result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
+                out.append(result)
+        # pdb.set_trace()
+        # print out[1].get_shape()
+        # print self.input_tensor.get_shape()
+        # print (pr/2), in_h+(pr-(pr/2)), (pc/2), in_w+(pc - (pc/2))
+        #return tf.reduce_sum(tf.pack(out),0)[:, pr:in_h+pr, pc:in_w+pc,:]
+        return tf.reduce_sum(tf.pack(out),0)[:, (pr/2):in_h+(pr/2), (pc/2):in_w+(pc/2),:]

@@ -32,6 +32,11 @@ from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
 from modules.convolution import Convolution
+from modules.avgpool import AvgPool
+from modules.maxpool import MaxPool
+
+from modules.convolution import Convolution
+
 import modules.render as render
 import input_data
 
@@ -43,11 +48,11 @@ import pdb
 flags = tf.flags
 logging = tf.logging
 
-flags.DEFINE_integer("max_steps", 300,'Number of steps to run trainer.')
+flags.DEFINE_integer("max_steps", 3001,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 200,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
-flags.DEFINE_float("learning_rate", 0.001,'Initial learning rate')
+flags.DEFINE_integer("test_batch_size", 1000,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_every", 500,'Number of steps to run trainer.')
+flags.DEFINE_float("learning_rate", 0.01,'Initial learning rate')
 flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
 flags.DEFINE_string("data_dir", 'data','Directory for storing data')
 flags.DEFINE_string("summaries_dir", 'mnist_conv_logs','Summaries directory')
@@ -61,12 +66,17 @@ FLAGS = flags.FLAGS
 def seq_conv_nn(x):
 
     nn = Sequential([Convolution(input_shape=(28,28,1),output_dim=32, name='conv1'), 
-                     Tanh(name='tanh1'), 
+                     MaxPool(name='maxpool1'),
+                     Tanh(name='tanh1'),
                      Convolution(input_shape=(28,28,32),output_dim=64, name='conv2'),
+                     MaxPool(name='maxpool2'),
                      Tanh(name='tanh2'),  
-                     Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
-                     Tanh(name='tanh3'), 
-                     Linear(256, 10, name='linear1'), 
+                     # Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
+                     # MaxPool(name='maxpool3'),
+                     # Tanh(name='tanh3'), 
+                     # Linear(256, 256, name='linear1'), 
+                     # Tanh(name='tanh4'), 
+                     Linear(256, 10, name='linear2'), 
                      Softmax(name='softmax1')])
     return nn, nn.forward(x)
 
@@ -167,7 +177,7 @@ def train():
 
     train_writer.close()
     test_writer.close()
-
+    print('Accuracy at step %s: %f' % (i, acc))
 
 def main(_):
     if tf.gfile.Exists(FLAGS.summaries_dir):
