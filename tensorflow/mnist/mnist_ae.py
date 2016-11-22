@@ -194,7 +194,7 @@ def train():
             else:
                 summary, loss, test_op_imgs = sess.run([merged, l2_loss,y], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
-            print('Accuracy at step %s: %f' % (i, loss))
+            print('Loss at step %s: %f' % (i, loss))
         else:  
             inp = feed_dict(True)
             if FLAGS.relevance_bool:
