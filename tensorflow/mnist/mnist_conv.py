@@ -150,7 +150,7 @@ def train():
             xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
             k = 1.0
         return {x: xs, y_: ys, keep_prob: k}
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     for i in range(FLAGS.max_steps):
         if i % FLAGS.test_every == 0:  # test-set accuracy
             test_inp = feed_dict(False)
