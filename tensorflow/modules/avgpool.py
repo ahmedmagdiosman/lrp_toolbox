@@ -59,6 +59,7 @@ class AvgPool(Module):
         pad_in_N, pad_in_rows, pad_in_cols, pad_in_depth = self.pad_input_tensor.get_shape().as_list()
         
         out = []
+        Rx = tf.zeros_like(self.pad_input_tensor, dtype = tf.float32)
         
         for i in xrange(Hout):
             for j in xrange(Wout):
@@ -81,6 +82,8 @@ class AvgPool(Module):
                     pad_up = j*wstride
 
                     result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
-                    out.append(result)
+                    #out.append(result)
+                    Rx+= result
                    
-        return tf.reduce_sum(tf.pack(out),0)[:, (pr/2):in_rows+(pr/2), (pc/2):in_cols+(pr/2),:]
+        return Rx[:, (pr/2):in_rows+(pr/2), (pc/2):in_cols+(pr/2),:]
+        #return tf.reduce_sum(tf.pack(out),0)[:, (pr/2):in_rows+(pr/2), (pc/2):in_cols+(pr/2),:]
