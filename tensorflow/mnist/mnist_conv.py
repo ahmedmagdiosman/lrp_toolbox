@@ -31,11 +31,12 @@ from modules.linear import Linear
 from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
-from modules.convolution import Convolution
+#from modules.convolution import Convolution
+from modules.conv import Convolution
+
 from modules.avgpool import AvgPool
 from modules.maxpool import MaxPool
 
-from modules.convolution import Convolution
 
 import modules.render as render
 import input_data
@@ -50,7 +51,7 @@ logging = tf.logging
 
 flags.DEFINE_integer("max_steps", 3001,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 1000,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 500,'Number of steps to run trainer.')
 flags.DEFINE_float("learning_rate", 0.01,'Initial learning rate')
 flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
@@ -65,10 +66,10 @@ FLAGS = flags.FLAGS
 
 def seq_conv_nn(x):
 
-    nn = Sequential([Convolution(input_shape=(28,28,1),output_dim=32, name='conv1'), 
+    nn = Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28), name='conv1'), 
                      MaxPool(name='maxpool1'),
                      Tanh(name='tanh1'),
-                     Convolution(input_shape=(28,28,32),output_dim=64, name='conv2'),
+                     Convolution(input_dim=32,output_dim=64, name='conv2'),
                      MaxPool(name='maxpool2'),
                      Tanh(name='tanh2'),  
                      # Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
@@ -78,6 +79,7 @@ def seq_conv_nn(x):
                      # Tanh(name='tanh4'), 
                      Linear(256, 10, name='linear2'), 
                      Softmax(name='softmax1')])
+    #import pdb; pdb.set_trace()
     return nn, nn.forward(x)
 
 

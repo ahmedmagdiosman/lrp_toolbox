@@ -83,11 +83,11 @@ def autoencoder(x):
 
 def seq_conv_nn(x):
 
-    encoder = [Convolution(input_shape=(28,28,1),output_dim=32, name='conv1'), 
+    encoder = [Convolution(input_dim=1,output_dim=32, input_shape=(FLAGS.batch_size,28),name='conv1'), 
                      Tanh(name='tanh1'), 
-                     Convolution(input_shape=(28,28,32),output_dim=64, name='conv2'),
+                     Convolution(input_dim=32,output_dim=64, name='conv2'),
                      Tanh(name='tanh2'),  
-                     Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
+                     Convolution(input_dim=64,output_dim=16, name='conv3'),
                      Tanh(name='tanh3'), 
                      Linear(256, 10, name='linear1')]
     decoder = [Linear(10,100, name='linear_d1'), 

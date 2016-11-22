@@ -8,12 +8,13 @@ class Linear(Module):
     Linear Layer
     '''
 
-    def __init__(self, input_dim, output_dim, activation_bool=False, activation_fn=tf.nn.relu,name="linear"):
+    def __init__(self, input_dim, output_dim, input_shape=(10,784), activation_bool=False, activation_fn=tf.nn.relu,name="linear"):
 
         Module.__init__(self)
 
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.input_shape = input_shape
         self.name = name
         
         self.weights_shape = [self.input_dim, self.output_dim]
@@ -21,14 +22,14 @@ class Linear(Module):
             self.weights = variables.weights(self.weights_shape)
             self.biases = variables.biases(self.output_dim)
 
-    def forward(self, input_tensor):
+    def forward(self, input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
         inp_shape = self.input_tensor.get_shape().as_list()
                 
         #import pdb;pdb.set_trace()
         if len(inp_shape)!=2:
             import numpy as np
-            self.input_tensor = tf.reshape(self.input_tensor,[-1, np.prod(inp_shape[1:])])
+            self.input_tensor = tf.reshape(self.input_tensor,[batch_size, np.prod(inp_shape[1:])])
 
         with tf.name_scope('activations'):
             linear = tf.matmul(self.input_tensor, self.weights)

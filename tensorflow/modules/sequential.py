@@ -52,8 +52,12 @@ class Sequential(Module):
         X : numpy.ndarray
             the output of the network's final layer
         '''
+        try:
+            self.batch_size, self.img_dim = self.modules[0].input_shape
+        except:
+            raise ValueError('Expects shape of input tensor: (BATCH_SIZE, IMG_DIM) for the first layer ')
         for m in self.modules:
-            X = m.forward(X)
+            X = m.forward(X,self.batch_size, self.img_dim)
         return X
 
     def clean(self):

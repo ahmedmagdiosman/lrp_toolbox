@@ -45,7 +45,7 @@ logging = tf.logging
 
 flags.DEFINE_integer("max_steps", 1000,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 200,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
 flags.DEFINE_float("learning_rate", 0.001,'Initial learning rate')
 flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
@@ -59,26 +59,13 @@ FLAGS = flags.FLAGS
 
 def seq_nn(x):
 
-    nn = Sequential([Linear(784,500, name='linear1'), 
+    nn = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784), name='linear1'), 
                      Relu(name='tanh1'),
                      Linear(500, 100, name='linear2'), 
                      Relu(name='tanh2'),
                      Linear(100, 10, name='linear3'), 
                      Softmax(name='softmax1')])
     return nn, nn.forward(x)
-
-def seq_conv_nn(x):
-
-    nn = Sequential([Convolution(input_shape=(28,28,1),output_dim=32, name='conv1'), 
-                     Tanh(name='tanh1'), 
-                     Convolution(input_shape=(28,28,32),output_dim=64, name='conv2'),
-                     Tanh(name='tanh2'),  
-                     Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
-                     Tanh(name='tanh3'), 
-                     Linear(256, 10, name='linear1'), 
-                     Softmax(name='softmax1')])
-    return nn, nn.forward(x)
-
 
 
 

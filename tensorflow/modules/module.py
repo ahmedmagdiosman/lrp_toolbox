@@ -15,6 +15,7 @@ class Module:
         #values for presetting lrp decomposition parameters per layer
         self.lrp_var = None
         self.lrp_param = 1.
+        #self.input_shape = self.input_shape
 
     def forward(self,X):
         ''' forward passes the input data X to the layer's output neurons '''
