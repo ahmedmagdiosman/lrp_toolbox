@@ -45,7 +45,7 @@ logging = tf.logging
 
 flags.DEFINE_integer("max_steps", 1000,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 200,'Number of steps to run trainer.')
+flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("hidden_size", 10,'Number of steps to run trainer.')
 
@@ -63,7 +63,7 @@ FLAGS = flags.FLAGS
 
 def autoencoder(x):
 
-    encoder = [Linear(784,500, name='linear_e1'), 
+    encoder = [Linear(784,500, input_shape=(FLAGS.batch_size,28),name='linear_e1'), 
                      Relu(name='relu_e1'),
                      Linear(500, 100, name='linear_e2'), 
                      Relu(name='relu2'),
@@ -143,7 +143,7 @@ def train():
     #pdb.set_trace()
     #noisy_x = noise(x)
     with tf.variable_scope('model'):
-        #nn, y = autoencoder(noisy_x)
+        #nn, y = autoencoder(x)
         nn, y = seq_conv_nn(x)
         if FLAGS.relevance_bool:
             RELEVANCE = nn.lrp(y, FLAGS.relevance_method, 1.0)
@@ -202,7 +202,7 @@ def train():
             else:
                 summary, _ , op_imgs = sess.run([merged, train_step, y], feed_dict=inp)
             train_writer.add_summary(summary, i)
-
+    pdb.set_trace()
     if FLAGS.relevance_bool:
         test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
         test_writer.add_summary(test_img_summary)
