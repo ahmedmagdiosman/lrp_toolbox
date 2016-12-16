@@ -65,21 +65,15 @@ FLAGS = flags.FLAGS
 
 
 def seq_conv_nn(x):
-
-    nn = Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28), name='conv1'), 
-                     MaxPool(name='maxpool1'),
-                     Tanh(name='tanh1'),
-                     Convolution(input_dim=32,output_dim=64, name='conv2'),
-                     MaxPool(name='maxpool2'),
-                     Tanh(name='tanh2'),  
-                     # Convolution(input_shape=(28,28,64),output_dim=16, name='conv3'),
-                     # MaxPool(name='maxpool3'),
-                     # Tanh(name='tanh3'), 
-                     # Linear(256, 256, name='linear1'), 
-                     # Tanh(name='tanh4'), 
-                     Linear(256, 10, name='linear2'), 
-                     Softmax(name='softmax1')])
-    #import pdb; pdb.set_trace()
+    pdb.set_trace()
+    nn = Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28)), 
+                     MaxPool(),
+                     Tanh(),
+                     Convolution(input_dim=32,output_dim=64),
+                     MaxPool(),
+                     Tanh(),  
+                     Linear(256, 10), 
+                     Softmax()])
     return nn, nn.forward(x)
 
 

@@ -4,6 +4,7 @@ import tensorflow as tf
 # -------------------------------
 # Modules for the neural network
 # -------------------------------
+layer_count = 0
 class Module:
     '''
     Superclass for all computation layer implementations
@@ -11,7 +12,10 @@ class Module:
 
     def __init__(self):
         ''' The constructor '''
-
+        global layer_count
+        layer_count = layer_count + 1
+        if hasattr(self, 'name'):
+            self.name = self.name+'_'+str(layer_count)
         #values for presetting lrp decomposition parameters per layer
         self.lrp_var = None
         self.lrp_param = 1.

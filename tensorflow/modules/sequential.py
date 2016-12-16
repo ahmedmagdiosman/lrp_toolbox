@@ -37,7 +37,6 @@ class Sequential(Module):
         Module.__init__(self)
         self.modules = modules
 
-
     def forward(self,X):
         '''
         Realizes the forward pass of an input through the net

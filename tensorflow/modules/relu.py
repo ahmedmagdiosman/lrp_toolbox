@@ -8,9 +8,9 @@ class Relu(Module):
     Relu Layer
     '''
 
-    def __init__(self, name):
-        Module.__init__(self)
+    def __init__(self, name='relu'):
         self.name = name
+        Module.__init__(self)
     def forward(self,input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
         with tf.variable_scope(self.name):

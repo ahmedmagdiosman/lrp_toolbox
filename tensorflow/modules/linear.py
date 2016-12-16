@@ -9,13 +9,13 @@ class Linear(Module):
     '''
 
     def __init__(self, input_dim, output_dim, input_shape=(10,784), activation_bool=False, activation_fn=tf.nn.relu,name="linear"):
-
+        self.name = name
         Module.__init__(self)
 
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.input_shape = input_shape
-        self.name = name
+        
         
         self.weights_shape = [self.input_dim, self.output_dim]
         with tf.variable_scope(self.name):

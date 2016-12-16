@@ -5,14 +5,14 @@ from module import Module
 class AvgPool(Module):
 
     def __init__(self, pool_size=(2,2), pool_stride=None, pad = 'SAME',name='maxpool'):
+        self.name = name
         Module.__init__(self)
         self.pool_size = [1]+list(self.pool_size)+[1]
         self.pool_stride = pool_stride
         if self.pool_stride is None:
             self.pool_stride=self.pool_size
         self.pad = pad
-        self.name = name
-
+        
     def forward(self,input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
         with tf.variable_scope(self.name):
