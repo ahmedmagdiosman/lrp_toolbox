@@ -9,9 +9,13 @@ This TF-wrapper considers the layers in the neural network to be in the form of 
                      Linear(100, 10), 
                      Softmax()]) 
 
-This `net` can then be used to visualize the contributions of the input pixels towards the decision by
+This `net` can then be used to propogate the data through the netowrk
 
-        relevance = net.lrp(y, 'simple', 1.0)
+        output = net.forward(input_data)
+     
+visualize the contributions of the input pixels towards the decision by
+
+        relevance = net.lrp(output, 'simple', 1.0)
 
 the different lrp variants available are:
 
@@ -35,4 +39,7 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
         tensorboard --logdir=mnist_linear_logs
    
         tensorboard --logdir=mnist_ae_logs
+
+
+
    
