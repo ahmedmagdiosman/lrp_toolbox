@@ -9,7 +9,7 @@ class Convolution(Module):
     '''
 
     def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), activation_bool=False, activation_fn=tf.nn.relu, pad = 'SAME',name="conv2d"):
-        
+        self.name = name
         Module.__init__(self)
         
         self.input_shape = input_shape
@@ -23,7 +23,7 @@ class Convolution(Module):
         self.weights_shape = [self.kernel_size[0], self.kernel_size[1], self.input_dim, self.output_dim]
         self.strides = [1,self.stride_size[0], self.stride_size[1],1]
         self.pad = pad
-        self.name = name
+        
         
         with tf.variable_scope(self.name):
             self.weights = variables.weights(self.weights_shape)

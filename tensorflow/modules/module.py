@@ -14,8 +14,10 @@ class Module:
         ''' The constructor '''
         global layer_count
         layer_count = layer_count + 1
+        
         if hasattr(self, 'name'):
             self.name = self.name+'_'+str(layer_count)
+            #print 'LAYER COUNT: '+str(layer_count)
         #values for presetting lrp decomposition parameters per layer
         self.lrp_var = None
         self.lrp_param = 1.

@@ -59,12 +59,12 @@ FLAGS = flags.FLAGS
 
 def seq_nn(x):
 
-    nn = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784), name='linear1'), 
-                     Relu(name='tanh1'),
-                     Linear(500, 100, name='linear2'), 
-                     Relu(name='tanh2'),
-                     Linear(100, 10, name='linear3'), 
-                     Softmax(name='softmax1')])
+    nn = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784)), 
+                     Relu(),
+                     Linear(500, 100), 
+                     Relu(),
+                     Linear(100, 10), 
+                     Softmax()])
     return nn, nn.forward(x)
 
 
