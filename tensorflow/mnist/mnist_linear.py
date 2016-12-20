@@ -39,11 +39,12 @@ import argparse
 import tensorflow as tf
 import numpy as np
 import pdb
+import os
 
 flags = tf.flags
 logging = tf.logging
 
-flags.DEFINE_integer("max_steps", 1000,'Number of steps to run trainer.')
+flags.DEFINE_integer("max_steps", 3500,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
@@ -52,6 +53,9 @@ flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
 flags.DEFINE_string("data_dir", 'data','Directory for storing data')
 flags.DEFINE_string("summaries_dir", 'mnist_linear_logs','Summaries directory')
 flags.DEFINE_boolean("relevance_bool", False,'Compute relevances')
+flags.DEFINE_boolean("save_model", False,'Save the trained model')
+flags.DEFINE_boolean("reload_model", False,'Restore the trained model')
+flags.DEFINE_string("checkpoint_dir", 'mnist_linear_model','Checkpoint dir')
 
 
 FLAGS = flags.FLAGS
@@ -84,6 +88,8 @@ def visualize(relevances, images_tensor):
         img = tf.image_summary('input', tf.cast(R, tf.float32), n)
     return img.eval()
 
+
+            
 def train():
   # Import data
   mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
@@ -121,8 +127,15 @@ def train():
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
-    tf.initialize_all_variables().run()
 
+    saver = tf.train.Saver()
+    tf.initialize_all_variables().run()
+    if FLAGS.reload_model:
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
+            saver.restore(sess, ckpt.model_checkpoint_path)
+    
 
     def feed_dict(train):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
@@ -150,7 +163,11 @@ def train():
             else:
                 summary, _ = sess.run([merged, train_step], feed_dict=inp)
             train_writer.add_summary(summary, i)
-
+    if FLAGS.save_model:
+        if not os.path.exists(FLAGS.checkpoint_dir):
+            os.system('mkdir '+FLAGS.checkpoint_dir)
+        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
+    
     if FLAGS.relevance_bool:
         test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
         test_writer.add_summary(test_img_summary)
