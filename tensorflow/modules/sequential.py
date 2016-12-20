@@ -1,11 +1,13 @@
 '''
+@author: Vignesh Srinivasan
 @author: Sebastian Lapuschkin
 @author: Gregoire Montavon
+@maintainer: Vignesh Srinivasan
 @maintainer: Sebastian Lapuschkin
-@contact: sebastian.lapuschkin@hhi.fraunhofer.de
-@date: 14.08.2015
-@version: 1.2+
-@copyright: Copyright (c)  2015, Sebastian Lapuschkin, Alexander Binder, Gregoire Montavon, Klaus-Robert Mueller
+@contact: vignesh.srinivasan@hhi.fraunhofer.de
+@date: 20.12.2016
+@version: 1.0+
+@copyright: Copyright (c)  2015, Sebastian Lapuschkin, Alexander Binder, Gregoire Montavon, Klaus-Robert Mueller, Wojciech Samek
 @license : BSD-2-Clause
 '''
 

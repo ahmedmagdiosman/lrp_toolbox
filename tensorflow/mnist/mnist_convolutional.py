@@ -1,25 +1,16 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the 'License');
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an 'AS IS' BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""A simple MNIST classifier which displays summaries in TensorBoard.
+'''
+@author: Vignesh Srinivasan
+@author: Sebastian Lapuschkin
+@author: Gregoire Montavon
+@maintainer: Vignesh Srinivasan
+@maintainer: Sebastian Lapuschkin 
+@contact: vignesh.srinivasan@hhi.fraunhofer.de
+@date: 20.12.2016
+@version: 1.0+
+@copyright: Copyright (c)  2015, Sebastian Lapuschkin, Alexander Binder, Gregoire Montavon, Klaus-Robert Mueller, Wojciech Samek
+@license : BSD-2-Clause
+'''
 
- This is an unimpressive MNIST model, but it is a good example of using
-tf.name_scope to make a graph legible in the TensorBoard graph explorer, and of
-naming summary tags so that they are grouped meaningfully in TensorBoard.
-
-It demonstrates the functionality of every TensorBoard dashboard.
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -59,7 +50,9 @@ flags.DEFINE_string("data_dir", 'data','Directory for storing data')
 flags.DEFINE_string("summaries_dir", 'mnist_conv_logs','Summaries directory')
 flags.DEFINE_boolean("relevance_bool", False,'Compute relevances')
 flags.DEFINE_string("relevance_method", 'simple','relevance methods: simple/eps/w^2/alphabeta')
-
+flags.DEFINE_boolean("save_model", False,'Save the trained model')
+flags.DEFINE_boolean("reload_model", False,'Restore the trained model')
+flags.DEFINE_string("checkpoint_dir", 'mnist_convolution_model','Checkpoint dir')
 
 FLAGS = flags.FLAGS
 
@@ -132,8 +125,14 @@ def train():
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
-    tf.initialize_all_variables().run()
 
+    saver = tf.train.Saver()
+    tf.initialize_all_variables().run()
+    if FLAGS.reload_model:
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
+            saver.restore(sess, ckpt.model_checkpoint_path)
 
     def feed_dict(train):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
@@ -162,6 +161,11 @@ def train():
                 summary, _ = sess.run([merged, train_step], feed_dict=inp)
             train_writer.add_summary(summary, i)
 
+    if FLAGS.save_model:
+        if not os.path.exists(FLAGS.checkpoint_dir):
+            os.system('mkdir '+FLAGS.checkpoint_dir)
+        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
+        
     if FLAGS.relevance_bool:
         test_img_summary = visualize_conv(relevance_test, test_inp[test_inp.keys()[0]])
         test_writer.add_summary(test_img_summary)

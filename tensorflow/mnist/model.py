@@ -1,3 +1,15 @@
+'''
+@author: Vignesh Srinivasan
+@author: Sebastian Lapushkin
+@author: Gregoire Montavon
+@maintainer: Vignesh Srinivasan
+@maintainer: Sebastian Lapuschkin
+@contact: vignesh.srinivasan@hhi.fraunhofer.de
+@date: 20.12.2016
+@version: 1.0+
+@copyright: Copyright (c)  2015, Sebastian Lapuschkin, Alexander Binder, Gregoire Montavon, Klaus-Robert Mueller, Wojciech Samek
+@license : BSD-2-Clause
+'''
 
 from __future__ import absolute_import
 from __future__ import division
