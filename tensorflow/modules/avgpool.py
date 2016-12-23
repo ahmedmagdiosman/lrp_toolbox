@@ -1,7 +1,7 @@
 '''
 @author: Vignesh Srinivasan
-@author: Gregoire Montavon
 @author: Sebastian Lapushkin
+@author: Gregoire Montavon
 @maintainer: Vignesh Srinivasan
 @maintainer: Sebastian Lapuschkin
 @contact: vignesh.srinivasan@hhi.fraunhofer.de

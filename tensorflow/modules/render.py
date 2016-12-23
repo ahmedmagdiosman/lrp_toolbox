@@ -16,8 +16,8 @@ import numpy as np
 import matplotlib.cm
 from matplotlib.cm import ScalarMappable
 import skimage.io
-#import skimage.feature
-import skimage.filter
+import skimage.feature
+import skimage.filters
 
 
 def vec2im(V, shape = () ):
@@ -225,7 +225,8 @@ def hm_to_rgb(R, X = None, scaling = 3, shape = (), sigma = 2, cmap = 'jet', nor
             print 'R.shape = ',Rdims, 'X.shape = ', xdims
             print 'skipping drawing of outline\n'
         else:
-            edges = skimage.filters.canny(X, sigma=sigma)
+            #edges = skimage.filters.canny(X, sigma=sigma)
+            edges = skimage.feature.canny(X, sigma=sigma)
             edges = np.invert(np.dstack([edges]*3))*1.0
             rgb *= edges # set outline pixels to black color
 
