@@ -22,8 +22,8 @@ from modules.linear import Linear
 from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
-#from modules.convolution import Convolution
-from modules.conv import Convolution
+from modules.convolution import Convolution
+#from modules.conv import Convolution
 
 from modules.avgpool import AvgPool
 from modules.maxpool import MaxPool
@@ -102,6 +102,7 @@ def train():
     with tf.variable_scope('model'):
         #nn, y = seq_nn(x)
         nn, y = seq_conv_nn(x)
+        pdb.set_trace()
         if FLAGS.relevance_bool:
             RELEVANCE = nn.lrp(y, FLAGS.relevance_method, 1.0)
         

@@ -16,9 +16,10 @@ from module import Module
 import variables
 import pdb
 
-class Deconvolution(Module):
+class Tconvolution(Module):
     '''
-    Deconvolutional Layer
+    Fractionally strided convolutional Layer /
+    Convolutional transpose Layer
     '''
 
     def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), activation_bool=False, activation_fn=tf.nn.relu, pad = 'SAME',name="deconv2d"):
@@ -33,7 +34,7 @@ class Deconvolution(Module):
         self.kernel_size = kernel_size
         self.stride_size = stride_size
         
-        self.weights_shape = [self.kernel_size[0], self.kernel_size[1], self.output_dim, self.input_dim]
+        self.weights_shape = [self.kernel_size[0], self.kernel_size[1], self.output_dim, self.input_dim ]
         self.strides = [1,self.stride_size[0], self.stride_size[1],1]
         self.pad = pad
         
@@ -42,7 +43,6 @@ class Deconvolution(Module):
             self.weights = variables.weights(self.weights_shape)
             self.biases = variables.biases(self.output_dim)
         
-            
 
     def forward(self, input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
@@ -65,6 +65,8 @@ class Deconvolution(Module):
             raise ValueError('Expected dimension of input tensor: 4')
         
         with tf.name_scope('activations'):
+            #pdb.set_trace()
+            #deconv = tf.nn.atrous_conv2d(self.input_tensor, self.weights, rate=2, padding='SAME')
             deconv = tf.nn.conv2d_transpose(self.input_tensor, self.weights, output_shape=output_shape, strides = self.strides, padding=self.pad)
             self.activations = tf.reshape(tf.nn.bias_add(deconv, self.biases), [-1]+deconv.get_shape().as_list()[1:])
             tf.histogram_summary(self.name + '/activations', self.activations)
@@ -91,24 +93,29 @@ class Deconvolution(Module):
         out_N, out_h, out_w, out_depth = self.activations.get_shape().as_list()
         in_N, in_h, in_w, in_depth = self.input_tensor.get_shape().as_list()
 
-        # if self.pad == 'SAME':
-        #     pr = in_h * hstride
-        #     pc =  in_w * wstride
-        #     self.pad_input_tensor = tf.pad(self.input_tensor, [[0,0],[pr/2, (pr-(pr/2))],[pc/2,(pc - (pc/2))],[0,0]], "CONSTANT")
-        # elif self.pad == 'VALID':
-        #     pr = (in_h -1) * hstride + hf 
-        #     pc =  (in_w -1) * wstride + wf
-        #     self.pad_input_tensor = tf.pad(self.input_tensor, [[0,0],[pr/2, (pr-(pr/2))],[pc/2,(pc - (pc/2))],[0,0]], "CONSTANT")
-
-        self.pad_input_tensor = self.input_tensor
-        pad_in_N, pad_in_h, pad_in_w, pad_in_depth = self.pad_input_tensor.get_shape().as_list()
-        Rx = tf.zeros_like(self.pad_input_tensor, dtype = tf.float32)
+        if self.pad == 'SAME':
+            pr = (in_h -1) * hstride + hf - Hout
+            pc =  (in_w -1) * wstride + wf - Wout
         
+            # pr = in_h * hstride
+            # pc =  in_w * wstride
+            self.pad_input_tensor = tf.pad(self.R, [[0,0],[pr/2, (pr-(pr/2))],[pc/2,(pc - (pc/2))],[0,0]], "CONSTANT")
+        elif self.pad == 'VALID':
+            pr = (in_h -1) * hstride + hf - Hout
+            pc =  (in_w -1) * wstride + wf - Wout
+            self.pad_input_tensor = tf.pad(self.R, [[0,0],[pr/2, (pr-(pr/2))],[pc/2,(pc - (pc/2))],[0,0]], "CONSTANT")
+        
+        #self.pad_input_tensor = self.input_tensor
+        pad_in_N, pad_in_h, pad_in_w, pad_in_depth = self.pad_input_tensor.get_shape().as_list()
+        Rx = tf.zeros_like(self.input_tensor, dtype = tf.float32)
+        #pdb.set_trace()
         out = []
         term1 = tf.expand_dims(self.weights, 0)
+        
+        term1 = tf.reshape(term1, [1,hf,wf,NF,df])
         t2 = tf.expand_dims(tf.expand_dims(tf.expand_dims(self.biases, 0), 0), 0)
-        for i in xrange(hstride):
-            for j in xrange(wstride):
+        for i in xrange(in_h):
+            for j in xrange(in_w):
                 input_slice = self.input_tensor[:, i:i+1,j:j+1, : ]
                 term2 =  tf.expand_dims(input_slice, -1)
                 
@@ -117,20 +124,20 @@ class Deconvolution(Module):
                 Zs = t1 + t2
                 stabilizer = 1e-8*(tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs, dtype=tf.float32), tf.ones_like(Zs, dtype=tf.float32)*-1))
                 Zs += stabilizer
-                result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.R[:,i*hstride:i*hstride+hf , j*wstride:j*wstride+wf,:], -1), 4)
+                result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.pad_input_tensor[:,i*hstride:i*hstride+hf , j*wstride:j*wstride+wf,:], -2), 4)
                 
-                
-                #pad each result to the dimension of the out
-                pad_right = pad_in_h - (i*hstride+hf) if( pad_in_h - (i*hstride+hf))>0 else 0
-                pad_left = i*hstride
-                pad_bottom = pad_in_w - (j*wstride+wf) if ( pad_in_w - (j*wstride+wf) > 0) else 0
-                pad_up = j*wstride
-                print pad_left, pad_right,pad_up, pad_bottom
+                result = tf.reduce_sum(result, [1,2], keep_dims=True)
+                # #pad each result to the dimension of the out
+                pad_right = (in_h-1) - i 
+                pad_left = i
+                pad_bottom = (in_w - 1) -j 
+                pad_up = j
+                 
                 re_N, re_h, re_W, re_depth = result.get_shape().as_list()
                 result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
                 #pdb.set_trace()
-                Rx+= result
-        pdb.set_trace()
+                Rx+=result
+        #pdb.set_trace()
         return Rx
         #return Rx[:, (pr/2):in_h+(pr/2), (pc/2):in_w+(pc/2),:]
 

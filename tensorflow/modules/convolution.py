@@ -72,9 +72,9 @@ class Convolution(Module):
         if len(R_shape)!=4:
             activations_shape = self.activations.get_shape().as_list()
             self.R = tf.reshape(self.R, [-1]+activations_shape[1:])
-            
 
         
+
         N,Hout,Wout,NF = self.R.get_shape().as_list()
         hf,wf,df,NF = self.weights_shape
         _, hstride, wstride, _ = self.strides
@@ -97,6 +97,7 @@ class Convolution(Module):
             for j in xrange(Wout):
                 input_slice = self.pad_input_tensor[:, i*hstride:i*hstride+hf , j*wstride:j*wstride+wf , : ]
                 term2 =  tf.expand_dims(input_slice, -1)
+                #pdb.set_trace()
                 Z = term1 * term2
                 t1 = tf.reduce_sum(Z, [1,2,3], keep_dims=True)
                 Zs = t1 + t2
@@ -110,6 +111,8 @@ class Convolution(Module):
                 pad_left = i*hstride
                 pad_bottom = pad_in_w - (j*wstride+wf) if ( pad_in_w - (j*wstride+wf) > 0) else 0
                 pad_up = j*wstride
+                if pad_left <0 or pad_right <0 or pad_up <0 or pad_bottom <0:
+                    pdb.set_trace()
                 result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
                 Rx+= result
         return Rx[:, (pr/2):in_h+(pr/2), (pc/2):in_w+(pc/2),:]
@@ -125,7 +128,6 @@ class Convolution(Module):
             activations_shape = self.activations.get_shape().as_list()
             self.R = tf.reshape(self.R, [-1]+activations_shape[1:])
             
-
         
         N,Hout,Wout,NF = self.R.get_shape().as_list()
         hf,wf,df,NF = self.weights_shape
@@ -170,8 +172,6 @@ class Convolution(Module):
             activations_shape = self.activations.get_shape().as_list()
             self.R = tf.reshape(self.R, [-1]+activations_shape[1:])
             
-
-        
         N,Hout,Wout,NF = self.R.get_shape().as_list()
         hf,wf,df,NF = self.weights_shape
         _, hstride, wstride, _ = self.strides
@@ -258,10 +258,11 @@ class Convolution(Module):
         beta = 1 - alpha
         self.R = R
         R_shape = self.R.get_shape().as_list()
+        
         if len(R_shape)!=4:
             activations_shape = self.activations.get_shape().as_list()
             self.R = tf.reshape(self.R, [-1]+activations_shape[1:])
-        
+
         N,Hout,Wout,NF = self.R.get_shape().as_list()
         hf,wf,df,NF = self.weights_shape
         _, hstride, wstride, _ = self.strides

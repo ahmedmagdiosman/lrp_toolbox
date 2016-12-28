@@ -61,6 +61,11 @@ class Linear(Module):
         
     def _simple_lrp(self, R):
         self.R = R
+        R_shape = self.R.get_shape().as_list()
+        if len(R_shape)!=2:
+            activations_shape = self.activations.get_shape().as_list()
+            self.R = tf.reshape(self.R, activations_shape)
+
         Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
         Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(self.biases, 0), 0)
         return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)

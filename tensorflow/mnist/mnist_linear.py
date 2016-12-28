@@ -60,7 +60,7 @@ def seq_nn(x):
                      Relu(),
                      Linear(100, 10), 
                      Softmax()])
-    return nn, nn.forward(x)
+    return nn
 
 
 
@@ -93,19 +93,21 @@ def train():
         keep_prob = tf.placeholder(tf.float32)
     
     with tf.variable_scope('model'):
-        nn, y = seq_nn(x)
-        #nn, y = seq_conv_nn(x)
+        nn = seq_nn(x)
+        y = nn.forward(x)
+        train_step = nn.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
+        
         if FLAGS.relevance_bool:
             RELEVANCE = nn.lrp(y, 'simple', 1.0)
         
-    with tf.name_scope('cross_entropy'):
-        diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
-        with tf.name_scope('total'):
-            cross_entropy = tf.reduce_mean(diff)
-        tf.scalar_summary('cross entropy', cross_entropy)
+    # with tf.name_scope('cross_entropy'):
+    #     diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
+    #     with tf.name_scope('total'):
+    #         cross_entropy = tf.reduce_mean(diff)
+    #     tf.scalar_summary('cross entropy', cross_entropy)
 
-    with tf.name_scope('train'):
-        train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy)
+    # with tf.name_scope('train'):
+    #     train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         with tf.name_scope('correct_prediction'):

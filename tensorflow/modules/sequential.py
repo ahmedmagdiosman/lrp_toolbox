@@ -15,6 +15,7 @@ import copy
 import sys
 import numpy as np
 from module import Module
+from train import Train
 na = np.newaxis
 
 # -------------------------------
@@ -135,7 +136,9 @@ class Sequential(Module):
         '''
 
         for m in self.modules[::-1]:
-            #import pdb;pdb.set_trace()
-            #R = m.lrp(R)
             R = m.lrp(R,lrp_var,param)
         return R
+
+    def fit(self,output=None,ground_truth=None,loss='CE', optimizer='Adam', opt_params=[]):
+        import pdb; pdb.set_trace()
+        return Train(output,ground_truth, loss, optimizer, opt_params).train

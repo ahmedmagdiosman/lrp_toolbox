@@ -23,7 +23,7 @@ from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
 from modules.convolution import Convolution
-from modules.deconvolution import Deconvolution
+from modules.tconvolution import Tconvolution
 import modules.render as render
 import input_data
 
@@ -35,7 +35,7 @@ import pdb
 flags = tf.flags
 logging = tf.logging
 
-flags.DEFINE_integer("max_steps", 1000,'Number of steps to run trainer.')
+flags.DEFINE_integer("max_steps", 10000,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
@@ -88,15 +88,15 @@ def seq_conv_nn(x):
     #                  Relu(),
     #                  Linear(500, 784),
     #                  Relu()]
-    decoder = [Deconvolution(input_dim=10,output_dim=128, kernel_size=(3,3), stride_size=(1,1)), 
+    decoder = [Tconvolution(input_dim=10,output_dim=128, kernel_size=(3,3), stride_size=(1,1)), 
                      Relu(),
-               Deconvolution(input_dim=128,output_dim=64, kernel_size=(5,5)), 
+               Tconvolution(input_dim=128,output_dim=64, kernel_size=(5,5)), 
                      Relu(),
-               Deconvolution(input_dim=64,output_dim=32, kernel_size=(5,5), pad='VALID'), 
+               Tconvolution(input_dim=64,output_dim=32, kernel_size=(5,5), pad='VALID'), 
                      Relu(),
-               Deconvolution(input_dim=32,output_dim=16, kernel_size=(5,5)), 
+               Tconvolution(input_dim=32,output_dim=16, kernel_size=(5,5)), 
                      Relu(),
-               Deconvolution(input_dim=16,output_dim=1, kernel_size=(5,5)), 
+               Tconvolution(input_dim=16,output_dim=1, kernel_size=(5,5)), 
                      Relu()]
     
     nn = Sequential(encoder+decoder)
@@ -142,12 +142,13 @@ def train():
         y_ = tf.placeholder(tf.float32, [None, 10], name='y-input')
         keep_prob = tf.placeholder(tf.float32)
 
-    #pdb.set_trace()
+    
     #noisy_x = noise(x)
     with tf.variable_scope('model'):
         #nn, y = autoencoder(x)
         nn, y = seq_conv_nn(x)
         output_shape = y.get_shape().as_list()
+        #pdb.set_trace()
         y = tf.reshape(y, [FLAGS.batch_size, output_shape[1]*output_shape[2]*output_shape[3]])
         if FLAGS.relevance_bool:
             RELEVANCE = nn.lrp(y, FLAGS.relevance_method, 1.0)
