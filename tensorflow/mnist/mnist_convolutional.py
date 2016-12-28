@@ -57,9 +57,8 @@ flags.DEFINE_string("checkpoint_dir", 'mnist_convolution_model','Checkpoint dir'
 FLAGS = flags.FLAGS
 
 
-def seq_conv_nn(x):
-    #pdb.set_trace()
-    nn = Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28)), 
+def nn():
+    return Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28)), 
                      MaxPool(),
                      Tanh(),
                      Convolution(input_dim=32,output_dim=64),
@@ -67,10 +66,6 @@ def seq_conv_nn(x):
                      Tanh(),  
                      Linear(256, 10), 
                      Softmax()])
-    return nn, nn.forward(x)
-
-
-
 
 
 def visualize_conv(relevances, images_tensor):
@@ -87,6 +82,36 @@ def visualize_conv(relevances, images_tensor):
         img = tf.image_summary('input', tf.cast(R, tf.float32), n)
     return img.eval()
 
+def init_vars(sess):
+    saver = tf.train.Saver()
+    tf.initialize_all_variables().run()
+    if FLAGS.reload_model:
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
+            saver.restore(sess, ckpt.model_checkpoint_path)
+    return saver
+
+def save_model(sess, saver):
+    if FLAGS.save_model:
+        if not os.path.exists(FLAGS.checkpoint_dir):
+            os.system('mkdir '+FLAGS.checkpoint_dir)
+        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
+
+def plot_relevances(rel, img, writer):
+    img_summary = visualize(rel, img)
+    writer.add_summary(img_summary)
+    writer.flush()
+
+def feed_dict(mnist, train):
+    if train:
+        xs, ys = mnist.train.next_batch(FLAGS.batch_size)
+        k = FLAGS.dropout
+    else:
+        xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
+        k = 1.0
+    return xs, ys, k
+
 
 def train():
   # Import data
@@ -100,85 +125,51 @@ def train():
         keep_prob = tf.placeholder(tf.float32)
     
     with tf.variable_scope('model'):
-        #nn, y = seq_nn(x)
-        nn, y = seq_conv_nn(x)
-        pdb.set_trace()
+        net = nn()
+        y = net.forward(x)
+        train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
+
         if FLAGS.relevance_bool:
-            RELEVANCE = nn.lrp(y, FLAGS.relevance_method, 1.0)
+            RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
+        else:
+            RELVANCE=None
         
-    with tf.name_scope('cross_entropy'):
-        diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
-        with tf.name_scope('total'):
-            cross_entropy = tf.reduce_mean(diff)
-        tf.scalar_summary('cross entropy', cross_entropy)
-
-    with tf.name_scope('train'):
-        train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy)
-
     with tf.name_scope('accuracy'):
-        with tf.name_scope('correct_prediction'):
-            correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-        with tf.name_scope('accuracy'):
-            accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        tf.scalar_summary('accuracy', accuracy)
+        accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1)), tf.float32))
+    tf.scalar_summary('accuracy', accuracy)
 
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
 
-    saver = tf.train.Saver()
-    tf.initialize_all_variables().run()
-    if FLAGS.reload_model:
-        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
-            saver.restore(sess, ckpt.model_checkpoint_path)
+    saver = init_vars(sess)
 
-    def feed_dict(train):
-        """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-        if train:
-            xs, ys = mnist.train.next_batch(FLAGS.batch_size)
-            k = FLAGS.dropout
-        else:
-            xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
-            k = 1.0
-        return {x: xs, y_: ys, keep_prob: k}
-    #import pdb; pdb.set_trace()
     for i in range(FLAGS.max_steps):
         if i % FLAGS.test_every == 0:  # test-set accuracy
-            test_inp = feed_dict(False)
-            if FLAGS.relevance_bool:
-                summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
-            else:
-                summary, acc = sess.run([merged, accuracy], feed_dict=test_inp)
+            d = feed_dict(mnist, False)
+            test_inp = {x:d[0], y_: d[1], keep_prob: d[2]}
+            summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
             print('Accuracy at step %s: %f' % (i, acc))
         else:  
-            inp = feed_dict(True)
-            if FLAGS.relevance_bool:
-                summary, _ , relevance_train= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
-            else:
-                summary, _ = sess.run([merged, train_step], feed_dict=inp)
+            d = feed_dict(mnist, True)
+            inp = {x:d[0], y_: d[1], keep_prob: d[2]}
+            summary, _ , relevance_train= sess.run([merged, train, RELEVANCE], feed_dict=inp)
             train_writer.add_summary(summary, i)
 
-    if FLAGS.save_model:
-        if not os.path.exists(FLAGS.checkpoint_dir):
-            os.system('mkdir '+FLAGS.checkpoint_dir)
-        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
-        
-    if FLAGS.relevance_bool:
-        test_img_summary = visualize_conv(relevance_test, test_inp[test_inp.keys()[0]])
-        test_writer.add_summary(test_img_summary)
-        test_writer.flush()
+    # save model if required
+    save_model(sess, saver)
 
-        train_img_summary = visualize_conv(relevance_train, inp[inp.keys()[0]])
-        train_writer.add_summary(train_img_summary)
-        train_writer.flush()
+    # relevances plotted with visually pleasing color schemes
+    if FLAGS.relevance_bool:
+        # plot test images with relevances overlaid
+        plot_relevances(relevance_test, test_inp[test_inp.keys()[0]], test_writer )
+        # plot train images with relevances overlaid
+        plot_relevances(relevance_train, inp[inp.keys()[0]], train_writer )
 
     train_writer.close()
     test_writer.close()
-    print('Accuracy at step %s: %f' % (i, acc))
 
 def main(_):
     if tf.gfile.Exists(FLAGS.summaries_dir):

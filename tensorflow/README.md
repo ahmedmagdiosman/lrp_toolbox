@@ -9,9 +9,12 @@ This TF-wrapper considers the layers in the neural network to be in the form of 
                      Linear(100, 10), 
                      Softmax()]) 
 
-This `net` can then be used to propogate the data through the netowrk
+This `net` can then be used to propogate and optimize using
 
         output = net.forward(input_data)
+        
+        train = net.fit(output, ground_truth, loss, optimizer)
+
      
 visualize the contributions of the input pixels towards the decision by
 

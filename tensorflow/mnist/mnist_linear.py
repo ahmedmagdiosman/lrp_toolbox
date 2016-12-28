@@ -52,17 +52,13 @@ flags.DEFINE_string("checkpoint_dir", 'mnist_linear_model','Checkpoint dir')
 FLAGS = flags.FLAGS
 
 
-def seq_nn(x):
-
-    nn = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784)), 
+def nn():
+    return Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784)), 
                      Relu(),
                      Linear(500, 100), 
                      Relu(),
                      Linear(100, 10), 
                      Softmax()])
-    return nn
-
-
 
 
 def visualize(relevances, images_tensor):
@@ -80,7 +76,27 @@ def visualize(relevances, images_tensor):
     return img.eval()
 
 
-            
+def init_vars(sess):
+    saver = tf.train.Saver()
+    tf.initialize_all_variables().run()
+    if FLAGS.reload_model:
+        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
+            saver.restore(sess, ckpt.model_checkpoint_path)
+    return saver
+
+def save_model(sess, saver):
+    if FLAGS.save_model:
+        if not os.path.exists(FLAGS.checkpoint_dir):
+            os.system('mkdir '+FLAGS.checkpoint_dir)
+        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
+
+def plot_relevances(rel, img, writer):
+    img_summary = visualize(rel, img)
+    writer.add_summary(img_summary)
+    writer.flush()
+
 def train():
   # Import data
   mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
@@ -91,24 +107,19 @@ def train():
         x = tf.placeholder(tf.float32, [None, 784], name='x-input')
         y_ = tf.placeholder(tf.float32, [None, 10], name='y-input')
         keep_prob = tf.placeholder(tf.float32)
-    
+
+    # Model definition along with training and relevances
     with tf.variable_scope('model'):
-        nn = seq_nn(x)
-        y = nn.forward(x)
-        train_step = nn.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
+        net = nn()
+        y = net.forward(x)
+        train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
         
         if FLAGS.relevance_bool:
-            RELEVANCE = nn.lrp(y, 'simple', 1.0)
+            RELEVANCE = net.lrp(y, 'simple', 1.0)
+        else:
+            RELEVANCE = None
         
-    # with tf.name_scope('cross_entropy'):
-    #     diff = tf.nn.softmax_cross_entropy_with_logits(y, y_)
-    #     with tf.name_scope('total'):
-    #         cross_entropy = tf.reduce_mean(diff)
-    #     tf.scalar_summary('cross entropy', cross_entropy)
-
-    # with tf.name_scope('train'):
-    #     train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy)
-
+    # Accuracy computation
     with tf.name_scope('accuracy'):
         with tf.name_scope('correct_prediction'):
             correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
@@ -116,20 +127,14 @@ def train():
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         tf.scalar_summary('accuracy', accuracy)
 
-    # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
+    # Merge all the summaries and write them out 
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
 
-    saver = tf.train.Saver()
-    tf.initialize_all_variables().run()
-    if FLAGS.reload_model:
-        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
-            saver.restore(sess, ckpt.model_checkpoint_path)
-    
+    saver = init_vars(sess)
 
+    # input dict creation as per tensorflow source code
     def feed_dict(train):
         """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
         if train:
@@ -140,35 +145,27 @@ def train():
             k = 1.0
         return {x: xs, y_: ys, keep_prob: k}
 
+    # iterate over train and test data
     for i in range(FLAGS.max_steps):
-        if i % FLAGS.test_every == 0:  # test-set accuracy
+        if i % FLAGS.test_every == 0:  
             test_inp = feed_dict(False)
-            if FLAGS.relevance_bool:
-                summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
-            else:
-                summary, acc = sess.run([merged, accuracy], feed_dict=test_inp)
+            summary, acc , relevance_test= sess.run([merged, accuracy, RELEVANCE], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
             print('Accuracy at step %s: %f' % (i, acc))
         else:  
             inp = feed_dict(True)
-            if FLAGS.relevance_bool:
-                summary, _ , relevance_train= sess.run([merged, train_step, RELEVANCE], feed_dict=inp)
-            else:
-                summary, _ = sess.run([merged, train_step], feed_dict=inp)
+            summary, _ , relevance_train= sess.run([merged, train, RELEVANCE], feed_dict=inp)
             train_writer.add_summary(summary, i)
-    if FLAGS.save_model:
-        if not os.path.exists(FLAGS.checkpoint_dir):
-            os.system('mkdir '+FLAGS.checkpoint_dir)
-        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
-    
-    if FLAGS.relevance_bool:
-        test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
-        test_writer.add_summary(test_img_summary)
-        test_writer.flush()
 
-        train_img_summary = visualize(relevance_train, inp[inp.keys()[0]])
-        train_writer.add_summary(train_img_summary)
-        train_writer.flush()
+    # save model if required
+    save_model(sess, saver)
+
+    # relevances plotted with visually pleasing color schemes
+    if FLAGS.relevance_bool:
+        # plot test images with relevances overlaid
+        plot_relevances(relevance_test, test_inp[test_inp.keys()[0]], test_writer )
+        # plot train images with relevances overlaid
+        plot_relevances(relevance_train, inp[inp.keys()[0]], train_writer )
 
     train_writer.close()
     test_writer.close()

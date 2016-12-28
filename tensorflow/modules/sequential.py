@@ -140,5 +140,4 @@ class Sequential(Module):
         return R
 
     def fit(self,output=None,ground_truth=None,loss='CE', optimizer='Adam', opt_params=[]):
-        import pdb; pdb.set_trace()
         return Train(output,ground_truth, loss, optimizer, opt_params).train
