@@ -1,4 +1,4 @@
-This is a tensorflow wrapper for the LRP Toolbox which provides simple and accessible stand-alone implementations of LRP for artificial neural networks.
+This is a tensorflow wrapper which provides simple and accessible stand-alone implementations of LRP for artificial neural networks.
 
 ### Requirements
     tensorflow >= 0.11.0rc1
@@ -40,24 +40,17 @@ the different lrp variants available are:
 # Examples - MNIST
 
 To run the given examples 
-
-          
-        python mnist/mnist_conv.py --relevance_bool=True 
    
         python mnist/mnist_linear.py --relevance_bool=True
-   
-        python mnist/mnist_ae.py --relevance_bool=True
-   
 
 It downloads and extract the mnist datset, runs it on a neural netowrk and plots the relevances once the network is optimized. The relvances of the images can be viewed using
-
    
-        tensorboard --logdir=mnist_conv_logs
-        
         tensorboard --logdir=mnist_linear_logs
-   
-        tensorboard --logdir=mnist_ae_logs
 
+<img src="doc/images/images.png" width="280">
+<img src="doc/images/accuracy.png" width="280">
+<img src="doc/images/hist.png" width="280">
+<img src="doc/images/distributions.png" width="280">
 
 
    
