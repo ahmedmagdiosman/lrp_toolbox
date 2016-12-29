@@ -47,10 +47,11 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
    
         tensorboard --logdir=mnist_linear_logs
 
-<img src="doc/images/images.png" width="280">
-<img src="doc/images/accuracy.png" width="280">
-<img src="doc/images/hist.png" width="280">
-<img src="doc/images/distributions.png" width="280">
+<img src="doc/images/images.png" width="280" height="320">
+<img src="doc/images/accuracy.png" width="280" height="320">
+
+<img src="doc/images/hist.png" width="280" height="320">
+<img src="doc/images/distributions.png" width="280" height="320">
 
 
    
