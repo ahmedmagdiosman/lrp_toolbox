@@ -8,7 +8,7 @@ This is a tensorflow wrapper which provides simple and accessible stand-alone im
     
 # Features
 
-## Model 
+## 1. Model 
 
 This TF-wrapper considers the layers in the neural network to be in the form of a Sequence. A quick way to define a network would be
 
@@ -17,17 +17,17 @@ This TF-wrapper considers the layers in the neural network to be in the form of 
                      Linear(500, 100), 
                      Relu(),
                      Linear(100, 10), 
-                     Softmax()]) 
+                     Softmax()])
 
-## Train the network
+        output = net.forward(input_data)
+             
+## 2. Train the network
 
 This `net` can then be used to propogate and optimize using
 
-        output = net.forward(input_data)
-        
         train = net.fit(output, ground_truth, loss, optimizer)
 
-## LRP - Layer-wise relevance propagation
+## 3. LRP - Layer-wise relevance propagation
 
 And visualize the contributions of the input pixels towards the decision by
 
@@ -53,5 +53,7 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
 <img src="doc/images/hist.png" width="380" height="320">
 <img src="doc/images/distributions.png" width="380" height="320">
 
+# LRP for a pretrained model
 
+Follow steps (1) and (2) from Features mentioned above. 
    

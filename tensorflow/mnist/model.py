@@ -60,17 +60,10 @@ def visualize(relevances, images_tensor):
         img = tf.image_summary('input', tf.cast(R, tf.float32), n)
     return img.eval()
 
-def layers(x):
-    # Define the layers of your network here 
-    my_network = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784)), 
-                             Relu(),
-                             Linear(500, 100), 
-                             Relu(),
-                             Linear(100, 10),
-                             Softmax()])
-    return my_network, my_network.forward(x)
 
-def reload(saver, sess):
+def init_vars(sess):
+    saver = tf.train.Saver()
+    tf.initialize_all_variables().run()
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     try: 
         if ckpt and ckpt.model_checkpoint_path:
@@ -80,7 +73,23 @@ def reload(saver, sess):
             raise ValueError('No model found!')
     except:
         raise ValueError('Layer definition and model layers mismatch!')
-            
+    return saver
+
+def plot_relevances(rel, img, writer):
+    img_summary = visualize(rel, img)
+    writer.add_summary(img_summary)
+    writer.flush()
+    
+def layers(x):
+    # Define the layers of your network here 
+    my_network = Sequential([Linear(784,500, input_shape=(FLAGS.batch_size,784)), 
+                             Relu(),
+                             Linear(500, 100), 
+                             Relu(),
+                             Linear(100, 10),
+                             Softmax()])
+    return my_network
+
 def test():
 
     mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
@@ -88,7 +97,8 @@ def test():
     with tf.Session() as sess:
         x = tf.placeholder(tf.float32, [None, 784], name='input')
         with tf.variable_scope('model'):
-            my_netowrk, output = layers(x)
+            my_netowrk = layers(x)
+            output = my_netowrk.forward(x)
             if FLAGS.relevance_bool:
                 RELEVANCE = my_netowrk.lrp(output, 'simple', 1.0)
                 
@@ -97,9 +107,7 @@ def test():
         test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/my_model')
 
         # Intialize variables and reload your model
-        saver = tf.train.Saver()
-        tf.initialize_all_variables().run()
-        reload(saver, sess)
+        saver = init_vars(sess)
 
         # Extract testing data 
         xs, ys = mnist.test.next_batch(FLAGS.batch_size)
@@ -108,9 +116,7 @@ def test():
         test_writer.add_summary(summary, 0)
 
         # Save the images as heatmaps to visualize on tensorboard
-        test_img_summary = visualize(relevance_test, xs)
-        test_writer.add_summary(test_img_summary)
-        test_writer.flush()
+        plot_relevances(relevance_test, xs, test_writer)
         test_writer.close()
     
 def main(_):
