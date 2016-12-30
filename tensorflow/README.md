@@ -29,7 +29,7 @@ This `net` can then be used to propogate and optimize using
 
 ## 3. LRP - Layer-wise relevance propagation
 
-And visualize the contributions of the input pixels towards the decision by
+And compute the contributions of the input pixels towards the decision by
 
         relevance = net.lrp(output, 'simple', 1.0)
 
@@ -37,11 +37,12 @@ the different lrp variants available are:
 
         'simple','flat','w^2','epsilon' and 'alphabeta' 
 
-# Examples - MNIST
+# Examples 
 
-To run the given examples 
+To run the given mnist examples,
    
-        python mnist/mnist_linear.py --relevance_bool=True
+        cd examples
+        python mnist_linear.py --relevance_bool=True
 
 It downloads and extract the mnist datset, runs it on a neural netowrk and plots the relevances once the network is optimized. The relvances of the images can be viewed using
    
@@ -55,5 +56,6 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
 
 # LRP for a pretrained model
 
-Follow steps (1) and (2) from Features mentioned above. 
+Follow steps (1) and (2) from Features mentioned above.
+
    

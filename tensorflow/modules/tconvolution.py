@@ -46,8 +46,9 @@ class Tconvolution(Module):
 
     def forward(self, input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
-        
+        #pdb.set_trace()
         inp_shape = self.input_tensor.get_shape().as_list()
+        batch_size = inp_shape[0]
         if self.pad == 'SAME':
             output_shape = tf.pack([batch_size, inp_shape[1]*self.stride_size[0], inp_shape[1]*self.stride_size[1], self.output_dim])
         elif self.pad == 'VALID':

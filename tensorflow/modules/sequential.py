@@ -58,8 +58,13 @@ class Sequential(Module):
             self.batch_size, self.img_dim = self.modules[0].input_shape
         except:
             raise ValueError('Expects shape of input tensor: (BATCH_SIZE, IMG_DIM) for the first layer ')
+        print 'Forward Pass ... '
+        print '------------------------------------------------- '
         for m in self.modules:
+            print m.name+'::',
             X = m.forward(X,self.batch_size, self.img_dim)
+        print '\n'+ '------------------------------------------------- '
+        
         return X
 
     def clean(self):
@@ -134,9 +139,14 @@ class Sequential(Module):
         for which the explanation is to be computed. calling clean in between forward and lrp invalidates the
         temporary data
         '''
+        print 'Computing LRP ... '
+        print '------------------------------------------------- '
 
         for m in self.modules[::-1]:
+            print m.name+'::',
             R = m.lrp(R,lrp_var,param)
+        print '\n'+'------------------------------------------------- '
+
         return R
 
     def fit(self,output=None,ground_truth=None,loss='CE', optimizer='Adam', opt_params=[]):

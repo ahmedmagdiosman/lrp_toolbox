@@ -41,7 +41,7 @@ class MaxPool(Module):
         '''
         LRP according to Eq(56) in DOI: 10.1371/journal.pone.0130140
         '''
-
+            
         self.R = R
         R_shape = self.R.get_shape().as_list()
         if len(R_shape)!=4:

@@ -17,6 +17,7 @@ from linear import Linear
 from tanh import Tanh
 from softmax import Softmax
 from relu import Relu
+from sigmoid import Sigmoid
 from convolution import Convolution
 from tconvolution import Tconvolution
 from sequential import Sequential
