@@ -16,9 +16,9 @@ class Train():
             self.var_list = None
 
         if type(self.loss)!=str:
-            self.cost = self.loss
-            tf.scalar_summary('cost', tf.reduce_mean(self.cost))
-            # import pdb;pdb.set_trace()
+            #assuming loss is already computed and passed as a tensor
+            self.cost = tf.reduce_mean(self.loss)
+            tf.scalar_summary('cost', self.cost)
         else:
             self.compute_cost()
         
@@ -26,6 +26,7 @@ class Train():
         
     def compute_cost(self):
 
+        # Available loss operations are - [softmax_crossentropy, sigmoid_crossentropy, MSE] 
         if self.loss=='softmax_crossentropy':
             #Cross Entropy loss:
             with tf.name_scope('cross_entropy'):
@@ -42,14 +43,14 @@ class Train():
                     self.cost = tf.reduce_mean(diff)
             tf.scalar_summary('cross entropy', self.cost)
         
-        if self.loss=='L2':
-            with tf.name_scope('l2_loss'):
+        if self.loss=='MSE':
+            with tf.name_scope('mse_loss'):
                 self.cost = tf.sqrt(tf.reduce_mean(tf.square(tf.sub(self.output, self.ground_truth))))
-            tf.scalar_summary('l2_loss', self.cost)
+            tf.scalar_summary('mse_loss', self.cost)
     
 
     def optimize(self):
-        
+        # Available loss operations are - [adam, adagrad, adadelta, grad_descent, rmsprop]
         with tf.name_scope('train'):
             if self.optimizer == 'adam':
                 self.train = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)

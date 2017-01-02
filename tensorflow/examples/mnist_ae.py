@@ -25,6 +25,7 @@ from modules.tanh import Tanh
 from modules.convolution import Convolution
 from modules.tconvolution import Tconvolution
 import modules.render as render
+from modules.utils import Utils, Summaries, plot_relevances
 import input_data
 
 import argparse
@@ -48,6 +49,7 @@ flags.DEFINE_string("data_dir", 'data','Directory for storing data')
 flags.DEFINE_string("summaries_dir", 'mnist_ae_logs','Summaries directory')
 flags.DEFINE_boolean("relevance_bool", False,'Compute relevances')
 flags.DEFINE_string("relevance_method", 'simple','relevance methods: simple/eps/w^2/alphabeta')
+flags.DEFINE_string("checkpoint_dir", 'mnist_ae_model','Checkpoint dir')
 
 
 FLAGS = flags.FLAGS
@@ -69,11 +71,11 @@ def autoencoder(x):
                      Relu()
                      ]
     
-    nn = Sequential(encoder+decoder)
+    return Sequential(encoder+decoder)
     
-    return nn, nn.forward(x)
+    
 
-def seq_conv_nn(x):
+def conv_autoencoder(x):
 
     encoder = [Convolution(input_dim=1,output_dim=32, input_shape=(FLAGS.batch_size,28)), 
                      Tanh(), 
@@ -82,12 +84,6 @@ def seq_conv_nn(x):
                      Convolution(input_dim=64,output_dim=16),
                      Tanh(), 
                      Linear(256, 10)]
-    # decoder = [Linear(10,100), 
-    #                  Relu(),
-    #                  Linear(100, 500), 
-    #                  Relu(),
-    #                  Linear(500, 784),
-    #                  Relu()]
     decoder = [Tconvolution(input_dim=10,output_dim=128, kernel_size=(3,3), stride_size=(1,1)), 
                      Relu(),
                Tconvolution(input_dim=128,output_dim=64, kernel_size=(5,5)), 
@@ -99,37 +95,22 @@ def seq_conv_nn(x):
                Tconvolution(input_dim=16,output_dim=1, kernel_size=(5,5)), 
                      Relu()]
     
-    nn = Sequential(encoder+decoder)
-    return nn, nn.forward(x)
+    return Sequential(encoder+decoder)
 
 
 def noise(inp):
     noise = tf.get_variable(tf.truncated_normal(shape=[-1]+inp.get_shape().as_list()[1:], stddev = 0.1))
     return tf.addd(inp,noise)
 
-
-def visualize(relevances, images_tensor=None):
-    n,w,h, dim = relevances.shape
-    heatmap = relevances
-    #heatmap = relevances.reshape([n,28,28,1])
-    heatmaps = []
-
-    if images_tensor is not None:
-        input_images = images_tensor.reshape([n,28,28,1])
-            
-    for h,heat in enumerate(heatmap):
-        
-        if images_tensor is not None:
-            input_image = input_images[h]
-    
-            maps = render.hm_to_rgb(heat, input_image, scaling = 3, sigma = 2)
-        else:
-            maps = render.hm_to_rgb(heat, scaling = 3, sigma = 2)
-        heatmaps.append(maps)
-    R = np.array(heatmaps)
-    with tf.name_scope('input_reshape'):
-        img = tf.image_summary('input', tf.cast(R, tf.float32), n)
-    return img.eval()
+# input dict creation as per tensorflow source code
+def feed_dict(mnist, train):    
+    if train:
+        xs, ys = mnist.train.next_batch(FLAGS.batch_size)
+        k = FLAGS.dropout
+    else:
+        xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
+        k = 1.0
+    return (2*xs)-1, ys, k
 
 def train():
   # Import data
@@ -145,82 +126,49 @@ def train():
     
     #noisy_x = noise(x)
     with tf.variable_scope('model'):
-        #nn, y = autoencoder(x)
-        nn, y = seq_conv_nn(x)
+        #nn = autoencoder(x)
+        net = conv_autoencoder(x)
+        y = net.forward(x)
         output_shape = y.get_shape().as_list()
         #pdb.set_trace()
         y = tf.reshape(y, [FLAGS.batch_size, output_shape[1]*output_shape[2]*output_shape[3]])
         if FLAGS.relevance_bool:
-            RELEVANCE = nn.lrp(y, FLAGS.relevance_method, 1.0)
+            RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
+        else:
+            RELEVANCE = []
+        pdb.set_trace()
+        train = net.fit(output=y,ground_truth=x,loss='MSE',optimizer='adam', opt_params=[FLAGS.learning_rate])
+
         
-    with tf.name_scope('l2_loss'):
-        epsilon = 1e-8
-        l2_loss = tf.sqrt(tf.reduce_mean(tf.square(tf.sub(x,y))))
-    tf.scalar_summary('l2_loss', l2_loss)
-        #l2_loss = tf.reduce_sum(-x * tf.log(y + epsilon) -
-        #                (1.0 - x) * tf.log(1.0 - y + epsilon))
-        #l2_loss = tf.nn.l2_loss(y, x)
-        # with tf.name_scope('total'):
-        #     cross_entropy = tf.reduce_mean(diff)
-        # tf.scalar_summary('cross entropy', cross_entropy)
-
-    with tf.name_scope('train'):
-        train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(l2_loss)
-
-    # with tf.name_scope('accuracy'):
-    #     with tf.name_scope('correct_prediction'):
-    #         correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-    #     with tf.name_scope('accuracy'):
-    #         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    #     tf.scalar_summary('accuracy', accuracy)
-
-    # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
+    # Merge all the summaries and write them out
     merged = tf.merge_all_summaries()
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
-    tf.initialize_all_variables().run()
 
-
-    def feed_dict(train):
-        """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-        if train:
-            xs, ys = mnist.train.next_batch(FLAGS.batch_size)
-            k = FLAGS.dropout
-        else:
-            xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
-            k = 1.0
-        return {x: xs, y_: ys, keep_prob: k}
+    utils = Utils(sess, FLAGS.checkpoint_dir)
+    utils.init_vars()
+    
 
     for i in range(FLAGS.max_steps):
         if i % FLAGS.test_every == 0:  # test-set accuracy
-            test_inp = feed_dict(False)
-            if FLAGS.relevance_bool:
-                summary, loss , relevance_test, test_op_imgs= sess.run([merged, l2_loss, RELEVANCE,y], feed_dict=test_inp)
-            else:
-                summary, loss, test_op_imgs = sess.run([merged, l2_loss,y], feed_dict=test_inp)
+            d = feed_dict(mnist, False)
+            test_inp = {x:d[0], y_:d[1], keep_prob:d[2]}
+            summary, relevance_test, test_op_imgs= sess.run([merged, RELEVANCE,y], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
-            print('Loss at step %s: %f' % (i, loss))
-        else:  
-            inp = feed_dict(True)
-            if FLAGS.relevance_bool:
-                summary, _ , relevance_train, op_imgs= sess.run([merged, train_step, RELEVANCE, y], feed_dict=inp)
-            else:
-                summary, _ , op_imgs = sess.run([merged, train_step, y], feed_dict=inp)
+            #print('Loss at step %s: %f' % (i, loss))
+        else:
+            d = feed_dict(mnist, True)
+            inp = {x:d[0], y_:d[1], keep_prob:d[2]}
+            summary, _ , relevance_train, op_imgs= sess.run([merged, train, RELEVANCE, y], feed_dict=inp)
             train_writer.add_summary(summary, i)
     #pdb.set_trace()
     if FLAGS.relevance_bool:
-        test_img_summary = visualize(relevance_test, test_inp[test_inp.keys()[0]])
-        test_writer.add_summary(test_img_summary)
-        test_writer.flush()
-
-        #train_img_summary = visualize(relevance_train, inp[inp.keys()[0]])
-        #train_img_summary = visualize(test_op_imgs)
-        with tf.name_scope('input_reshape'):
-            img = tf.image_summary('input', tf.cast(test_op_imgs.reshape([FLAGS.test_batch_size, 28,28,1]), tf.float32), test_op_imgs.shape[0])
+        # plot test images with relevances overlaid
+        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), test_writer )
+        # plot train images with relevances overlaid
+        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), train_writer )
         
-        train_writer.add_summary(img.eval())
-        train_writer.flush()
-
+        
     train_writer.close()
     test_writer.close()
 

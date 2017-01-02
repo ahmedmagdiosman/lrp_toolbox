@@ -23,26 +23,21 @@ from modules.softmax import Softmax
 from modules.relu import Relu
 from modules.tanh import Tanh
 from modules.convolution import Convolution
-
 from modules.avgpool import AvgPool
 from modules.maxpool import MaxPool
-
-
+from modules.utils import Utils, Summaries, plot_relevances
 import modules.render as render
 import input_data
 
-import argparse
 import tensorflow as tf
 import numpy as np
 import pdb
-import os
 
 flags = tf.flags
 logging = tf.logging
 
 flags.DEFINE_integer("max_steps", 3001,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 500,'Number of steps to run trainer.')
 flags.DEFINE_float("learning_rate", 0.01,'Initial learning rate')
 flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
@@ -68,49 +63,15 @@ def nn():
                      Softmax()])
 
 
-def visualize(relevances, images_tensor):
-    n, w,h,c = relevances.shape
-    heatmap = relevances
-    input_images = images_tensor.reshape([n,28,28,1])
-    heatmaps = []
-    for h,heat in enumerate(heatmap):
-        input_image = input_images[h]
-        maps = render.hm_to_rgb(heat, input_image, scaling = 3, sigma = 2)
-        heatmaps.append(maps)
-    R = np.array(heatmaps)
-    with tf.name_scope('input_reshape'):
-        img = tf.image_summary('input', tf.cast(R, tf.float32), n)
-    return img.eval()
-
-def init_vars(sess):
-    saver = tf.train.Saver()
-    tf.initialize_all_variables().run()
-    if FLAGS.reload_model:
-        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
-            saver.restore(sess, ckpt.model_checkpoint_path)
-    return saver
-
-def save_model(sess, saver):
-    if FLAGS.save_model:
-        if not os.path.exists(FLAGS.checkpoint_dir):
-            os.system('mkdir '+FLAGS.checkpoint_dir)
-        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
-
-def plot_relevances(rel, img, writer):
-    img_summary = visualize(rel, img)
-    writer.add_summary(img_summary)
-    writer.flush()
 
 def feed_dict(mnist, train):
     if train:
         xs, ys = mnist.train.next_batch(FLAGS.batch_size)
         k = FLAGS.dropout
     else:
-        xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
+        xs, ys = mnist.test.next_batch(FLAGS.batch_size)
         k = 1.0
-    return xs, ys, k
+    return (2*xs)-1, ys, k
 
 
 def train():
@@ -143,7 +104,8 @@ def train():
     train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
 
-    saver = init_vars(sess)
+    utils = Utils(sess, FLAGS.checkpoint_dir)
+    utils.init_vars()
 
     for i in range(FLAGS.max_steps):
         if i % FLAGS.test_every == 0:  # test-set accuracy
@@ -159,15 +121,16 @@ def train():
             train_writer.add_summary(summary, i)
 
     # save model if required
-    save_model(sess, saver)
+    if FLAGS.save_model:
+        utils.save_model()
 
-    # relevances plotted with visually pleasing color schemes
+        # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot test images with relevances overlaid
-        plot_relevances(relevance_test, test_inp[test_inp.keys()[0]], test_writer )
+        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), test_writer )
         # plot train images with relevances overlaid
-        plot_relevances(relevance_train, inp[inp.keys()[0]], train_writer )
-
+        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), train_writer )
+    
     train_writer.close()
     test_writer.close()
 

@@ -29,6 +29,7 @@ import modules.render as render
 
 from modules.avgpool import AvgPool
 from modules.maxpool import MaxPool
+from modules.utils import Utils, Summaries, plot_relevances
 import input_data
 
 import argparse
@@ -42,11 +43,10 @@ logging = tf.logging
 
 flags.DEFINE_integer("max_steps", 5000,'Number of steps to run trainer.')
 flags.DEFINE_integer("batch_size", 100,'Number of steps to run trainer.')
-flags.DEFINE_integer("test_batch_size", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("test_every", 100,'Number of steps to run trainer.')
 flags.DEFINE_integer("input_size", 1024,'Number of steps to run trainer.')
 flags.DEFINE_float("G_learning_rate", 0.01,'Initial learning rate')
-flags.DEFINE_float("D_learning_rate", 0.001,'Initial learning rate')
+flags.DEFINE_float("D_learning_rate", 0.0001,'Initial learning rate')
 flags.DEFINE_float("dropout", 0.9, 'Keep probability for training dropout.')
 flags.DEFINE_string("data_dir", 'data','Directory for storing data')
 flags.DEFINE_string("summaries_dir", 'mnist_gan_logs','Summaries directory')
@@ -87,54 +87,10 @@ def generator():
                        Tconvolution(input_dim=16,output_dim=16),
                        Tanh(),
                        Tconvolution(input_dim=16,output_dim=1),
-                       Sigmoid()
+                       Tanh()
                        
                        ])
 
-
-def visualize(relevances, images_tensor=None):
-    n,w,h, dim = relevances.shape
-    heatmap = relevances
-    #heatmap = relevances.reshape([n,28,28,1])
-    heatmaps = []
-
-    if images_tensor is not None:
-        input_images = images_tensor.reshape([n,28,28,1])
-            
-    for h,heat in enumerate(heatmap):
-        
-        if images_tensor is not None:
-            input_image = input_images[h]
-    
-            maps = render.hm_to_rgb(heat, input_image, scaling = 3, sigma = 2)
-        else:
-            maps = render.hm_to_rgb(heat, scaling = 3, sigma = 2)
-        heatmaps.append(maps)
-    R = np.array(heatmaps)
-    with tf.name_scope('input_reshape'):
-        img = tf.image_summary('input', tf.cast(R, tf.float32), n)
-    return img.eval()
-
-def init_vars(sess):
-    saver = tf.train.Saver()
-    tf.initialize_all_variables().run()
-    if FLAGS.reload_model:
-        ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            print('Reloading from -- '+FLAGS.checkpoint_dir+'/model.ckpt')
-            saver.restore(sess, ckpt.model_checkpoint_path)
-    return saver
-
-def save_model(sess, saver):
-    if FLAGS.save_model:
-        if not os.path.exists(FLAGS.checkpoint_dir):
-            os.system('mkdir '+FLAGS.checkpoint_dir)
-        save_path = saver.save(sess, FLAGS.checkpoint_dir+'/model.ckpt',write_meta_graph=False)
-
-def plot_relevances(rel, img, writer):
-    img_summary = visualize(rel, img)
-    writer.add_summary(img_summary)
-    writer.flush()
 
 def feed_dict(mnist, train):
     if train:
@@ -143,14 +99,14 @@ def feed_dict(mnist, train):
     else:
         xs, ys = mnist.test.next_batch(FLAGS.test_batch_size)
         k = 1.0
-    return xs, ys, k
+    return (2*xs)-1, ys, k
 
 
 def compute_D_loss(D1, D2):
-    return tf.nn.softmax_cross_entropy_with_logits(D1, tf.ones(tf.shape(D1))) , tf.nn.softmax_cross_entropy_with_logits(D2, tf.zeros(tf.shape(D2)))
+    return tf.nn.sigmoid_cross_entropy_with_logits(D1, tf.ones(tf.shape(D1))) , tf.nn.sigmoid_cross_entropy_with_logits(D2, tf.zeros(tf.shape(D2)))
 
 def compute_G_loss(D2):
-    return tf.nn.softmax_cross_entropy_with_logits(D2, tf.ones(tf.shape(D2)))
+    return tf.nn.sigmoid_cross_entropy_with_logits(D2, tf.ones(tf.shape(D2)))
     
 def train():
   # Import data
@@ -195,11 +151,14 @@ def train():
     D_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/D')
     G_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/G')
     
-    saver = init_vars(sess)
+    utils = Utils(sess, FLAGS.checkpoint_dir)
+    utils.init_vars()
+    
     for i in range(FLAGS.max_steps):
         d = feed_dict(mnist, True)
         inp = {x:d[0]}
-        _ , dloss, dd1 ,dd2, relevance_train= sess.run([D_train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
+        pdb.set_trace()
+        _ , dloss, dd1 ,dd2, relevance_train= sess.run([ D_train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
         _ , gloss, gen_images = sess.run([G_train, G_loss, Gout])
         _ , gloss, gen_images = sess.run([G_train, G_loss, Gout])
 
@@ -211,8 +170,9 @@ def train():
         # G_writer.add_summary(G_summary, i)
 
     # save model if required
-    save_model(sess, saver)
-
+    if FLAGS.save_model:
+        utils.save_model()
+        
     # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot images with relevances overlaid
@@ -220,6 +180,7 @@ def train():
 
     D_writer.close()
     G_writer.close()
+    
 def main(_):
     if tf.gfile.Exists(FLAGS.summaries_dir):
         tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
