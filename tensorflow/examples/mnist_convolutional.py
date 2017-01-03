@@ -91,18 +91,22 @@ def train():
         train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
 
         if FLAGS.relevance_bool:
-            RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
+            #RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
+            #RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
+            RELEVANCE = net.lrp(y, 'ww', 0)
+            #RELEVANCE = net.lrp(y, 'flat', 0)
+            #RELEVANCE = net.lrp(y, 'alphabeta', 0.7)
         else:
             RELEVANCE=[]
         
-    with tf.name_scope('accuracy'):
-        accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1)), tf.float32))
-    tf.scalar_summary('accuracy', accuracy)
+        with tf.name_scope('accuracy'):
+            accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1)), tf.float32))
+        tf.summary.scalar('accuracy', accuracy)
 
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-    merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
-    test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
+    merged = tf.summary.merge_all()
+    train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
+    test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
     utils = Utils(sess, FLAGS.checkpoint_dir)
     utils.init_vars()
@@ -127,6 +131,7 @@ def train():
         # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot test images with relevances overlaid
+        
         plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), test_writer )
         # plot train images with relevances overlaid
         plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), train_writer )

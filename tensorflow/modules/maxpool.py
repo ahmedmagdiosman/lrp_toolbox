@@ -28,10 +28,10 @@ class MaxPool(Module):
         
     def forward(self,input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
-        with tf.variable_scope(self.name):
-            with tf.name_scope('activations'):
-                self.activations = tf.nn.max_pool(self.input_tensor, ksize=self.pool_size,strides=self.pool_stride,padding=self.pad, name=self.name )
-            tf.histogram_summary(self.name + '/activations', self.activations)
+        #with tf.variable_scope(self.name):
+        with tf.name_scope(self.name):
+            self.activations = tf.nn.max_pool(self.input_tensor, ksize=self.pool_size,strides=self.pool_stride,padding=self.pad, name=self.name )
+            tf.summary.histogram('activations', self.activations)
         return self.activations
 
     def clean(self):
@@ -80,8 +80,8 @@ class MaxPool(Module):
                 pad_up = j*wstride
                 result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
                 Rx+= result
-                   
-        return Rx[:, (pr/2):in_rows+(pr/2), (pc/2):in_cols+(pr/2),:]
+        
+        return Rx[:, (pr/2):in_rows+(pr/2), (pc/2):in_cols+(pc/2),:]
 
     def _flat_lrp(self,R):
         '''

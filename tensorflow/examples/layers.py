@@ -47,7 +47,7 @@ def linear(input_tensor, output_dim, dropout_bool=False, dropout_prob=0.8, activ
     #apply dropout if training
     if dropout_bool:
         with tf.name_scope('dropout'):
-            tf.scalar_summary('dropout_keep_probability', dropout_prob)
+            tf.summary.scalar('dropout_keep_probability', dropout_prob)
             activations = tf.nn.dropout(activations, dropout_prob)
     return activations
 

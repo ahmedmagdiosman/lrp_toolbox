@@ -141,9 +141,9 @@ def train():
 
         
     # Merge all the summaries and write them out
-    merged = tf.merge_all_summaries()
-    train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train', sess.graph)
-    test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
+    merged = tf.summary.merge_all()
+    train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
+    test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
     utils = Utils(sess, FLAGS.checkpoint_dir)
     utils.init_vars()

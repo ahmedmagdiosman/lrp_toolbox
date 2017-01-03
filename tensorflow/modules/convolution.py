@@ -55,10 +55,10 @@ class Convolution(Module):
         except:
             raise ValueError('Expected dimension of input tensor: 4')
         
-        with tf.name_scope('activations'):
+        with tf.name_scope(self.name):
             conv = tf.nn.conv2d(self.input_tensor, self.weights, strides = self.strides, padding=self.pad)
             self.activations = tf.reshape(tf.nn.bias_add(conv, self.biases), [-1]+conv.get_shape().as_list()[1:])
-            tf.histogram_summary(self.name + '/activations', self.activations)
+            tf.summary.histogram('activations', self.activations)
         return self.activations
 
         
@@ -147,10 +147,9 @@ class Convolution(Module):
         out = []
         for i in xrange(Hout):
             for j in xrange(Wout):
-                Z = tf.ones([N, hf,wf,NF], dtype=tf.float32)
-                Zs = tf.reduce_sum(Z, [1,2,3], keep_dims=True) 
-                result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 1), 4)
-                
+                Z = tf.ones([N, hf,wf,df,NF], dtype=tf.float32)
+                Zs = tf.reduce_sum(Z, [1,2,3], keep_dims=True)
+                result = tf.reduce_sum((Z/Zs) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 3), 4)
                 
                 #pad each result to the dimension of the out
                 pad_right = pad_in_h - (i*hstride+hf) if( pad_in_h - (i*hstride+hf))>0 else 0
@@ -284,6 +283,7 @@ class Convolution(Module):
             for j in xrange(Wout):
                 input_slice = self.pad_input_tensor[:, i*hstride:i*hstride+hf , j*wstride:j*wstride+wf , : ]
                 term2 =  tf.expand_dims(input_slice, -1)
+                #pdb.set_trace()
                 Z = term1 * term2
 
                 if not alpha == 0:
@@ -291,16 +291,16 @@ class Convolution(Module):
                     t2 = tf.expand_dims(tf.expand_dims(tf.select(tf.greater(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
                     t1 = tf.expand_dims( tf.reduce_sum(Zp, 1), 1)
                     Zsp = t1 + t2
-                    Ralpha = alpha + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+                    Ralpha = alpha * tf.reduce_sum((Zp / Zsp) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 1),4)
                 else:
                     Ralpha = 0
 
                 if not beta == 0:
-                    Zn = tf.select(tf.lesser(Z,0),Z, tf.zeros_like(Z))
-                    t2 = tf.expand_dims(tf.expand_dims(tf.select(tf.lesser(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
+                    Zn = tf.select(tf.less(Z,0),Z, tf.zeros_like(Z))
+                    t2 = tf.expand_dims(tf.expand_dims(tf.select(tf.less(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
                     t1 = tf.expand_dims( tf.reduce_sum(Zn, 1), 1)
                     Zsp = t1 + t2
-                    Rbeta = beta + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+                    Rbeta = beta * tf.reduce_sum((Zn / Zsp) * tf.expand_dims(self.R[:,i:i+1,j:j+1,:], 1),4)
                 else:
                     Rbeta = 0
 
@@ -312,5 +312,7 @@ class Convolution(Module):
                 pad_bottom = pad_in_w - (j*wstride+wf) if ( pad_in_w - (j*wstride+wf) > 0) else 0
                 pad_up = j*wstride
                 result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
+                #print pad_bottom, pad_left, pad_right, pad_up
+                #pdb.set_trace()
                 Rx+= result
         return Rx[:, (pr/2):in_h+(pr/2), (pc/2):in_w+(pc/2),:]

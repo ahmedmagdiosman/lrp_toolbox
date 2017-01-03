@@ -65,12 +65,12 @@ class Tconvolution(Module):
         except:
             raise ValueError('Expected dimension of input tensor: 4')
         
-        with tf.name_scope('activations'):
+        with tf.name_scope(self.name):
             #pdb.set_trace()
             #deconv = tf.nn.atrous_conv2d(self.input_tensor, self.weights, rate=2, padding='SAME')
             deconv = tf.nn.conv2d_transpose(self.input_tensor, self.weights, output_shape=output_shape, strides = self.strides, padding=self.pad)
             self.activations = tf.reshape(tf.nn.bias_add(deconv, self.biases), [-1]+deconv.get_shape().as_list()[1:])
-            tf.histogram_summary(self.name + '/activations', self.activations)
+            tf.summary.histogram('activations', self.activations)
         return self.activations
 
         

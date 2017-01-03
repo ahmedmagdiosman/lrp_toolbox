@@ -44,11 +44,11 @@ class Linear(Module):
             import numpy as np
             self.input_tensor = tf.reshape(self.input_tensor,[batch_size, np.prod(inp_shape[1:])])
 
-        with tf.name_scope('activations'):
+        with tf.name_scope(self.name):
             linear = tf.matmul(self.input_tensor, self.weights)
             self.activations = tf.nn.bias_add(linear, self.biases)
             #activations = activation_fn(conv, name='activation')
-            tf.histogram_summary(self.name + '/activations', self.activations)
+            tf.summary.histogram('activations', self.activations)
         return self.activations
 
     def check_input_shape(self):
@@ -97,12 +97,8 @@ class Linear(Module):
         self.R= R
         Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
         Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(self.biases, 0), 0)
-        Zs = Zs + tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs)*-1, tf.ones_like(Zs))
+        Zs += epsilon * tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs)*-1, tf.ones_like(Zs))
         return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
-        
-
-        # add slack to denominator. we require sign(0) = 1. since np.sign(0) = 0 would defeat the purpose of the numeric stabilizer we do not use it.
-        Zs += epsilon * ((Zs >= 0)*2-1)
         
 
     def _alphabeta_lrp(self,R,alpha):
@@ -118,16 +114,16 @@ class Linear(Module):
             term2 = tf.expand_dims(tf.expand_dims(tf.select(tf.greater(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
             term1 = tf.expand_dims( tf.reduce_sum(Zp, 1), 1)
             Zsp = term1 + term2
-            Ralpha = alpha + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+            Ralpha = alpha * tf.reduce_sum((Zp / Zsp) * tf.expand_dims(self.R, 1),2)
         else:
             Ralpha = 0
 
         if not beta == 0:
-            Zn = tf.select(tf.lesser(Z,0),Z, tf.zeros_like(Z))
-            term2 = tf.expand_dims(tf.expand_dims(tf.select(tf.lesser(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
+            Zn = tf.select(tf.less(Z,0),Z, tf.zeros_like(Z))
+            term2 = tf.expand_dims(tf.expand_dims(tf.select(tf.less(self.biases,0),self.biases, tf.zeros_like(self.biases)), 0 ), 0)
             term1 = tf.expand_dims( tf.reduce_sum(Zn, 1), 1)
             Zsp = term1 + term2
-            Rbeta = beta + tf.reduce_sum((Z / Zsp) * tf.expand_dims(self.R, 1),2)
+            Rbeta = beta * tf.reduce_sum((Zn / Zsp) * tf.expand_dims(self.R, 1),2)
         else:
             Rbeta = 0
 

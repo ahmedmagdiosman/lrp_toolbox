@@ -28,8 +28,8 @@ def visualize(relevances, images_tensor=None):
             maps = render.hm_to_rgb(heat, scaling = 3, sigma = 2)
         heatmaps.append(maps)
     R = np.array(heatmaps)
-    with tf.name_scope('input_reshape'):
-        img = tf.image_summary('input', tf.cast(R, tf.float32), n)
+    with tf.name_scope('input'):
+        img = tf.summary.image('input', tf.cast(R, tf.float32), n)
     return img.eval()
 
 def plot_relevances(rel, img, writer):
@@ -61,7 +61,8 @@ class Utils():
 
     def init_vars(self):
         self.saver = tf.train.Saver()
-        tf.initialize_all_variables().run()
+        #tf.initialize_all_variables().run()
+        tf.global_variables_initializer().run()
         if self.checkpoint_dir is not None:
             ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
             if ckpt and ckpt.model_checkpoint_path:

@@ -1,7 +1,7 @@
 This is a tensorflow wrapper which provides simple and accessible stand-alone implementations of LRP for artificial neural networks.
 
 ### Requirements
-    tensorflow >= 0.11.0rc1
+    tensorflow >= 0.12.0rc1
     numpy == 2.7
     matplotlib >= 1.3.1
     scikit-image > 0.11.3
@@ -35,7 +35,7 @@ And compute the contributions of the input pixels towards the decision by
 
 the different lrp variants available are:
 
-        'simple','flat','w^2','epsilon' and 'alphabeta' 
+        'simple','epsilon', 'flat','w^2' and 'alphabeta' 
 
 # Examples 
 

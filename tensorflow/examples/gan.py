@@ -147,9 +147,9 @@ def train():
         
 
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-    merged = tf.merge_all_summaries()
-    D_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/D')
-    G_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/G')
+    merged = tf.summary.merge_all()
+    D_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/D')
+    G_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/G')
     
     utils = Utils(sess, FLAGS.checkpoint_dir)
     utils.init_vars()

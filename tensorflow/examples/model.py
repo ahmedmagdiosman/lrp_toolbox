@@ -57,7 +57,7 @@ def visualize(relevances, images_tensor):
         heatmaps.append(maps)
     R = np.array(heatmaps)
     with tf.name_scope('input_reshape'):
-        img = tf.image_summary('input', tf.cast(R, tf.float32), n)
+        img = tf.summary.image('input', tf.cast(R, tf.float32), n)
     return img.eval()
 
 
@@ -104,8 +104,8 @@ def test():
                 RELEVANCE = my_netowrk.lrp(output, 'simple', 1.0)
                 
         # Merge all the summaries and write them out 
-        merged = tf.merge_all_summaries()
-        test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/my_model')
+        merged = tf.summary.merge_all()
+        test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/my_model')
 
         # Intialize variables and reload your model
         saver = init_vars(sess)
