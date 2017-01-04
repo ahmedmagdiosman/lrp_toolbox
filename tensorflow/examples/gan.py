@@ -176,7 +176,8 @@ def train():
     # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot images with relevances overlaid
-        plot_relevances(relevance_train, gen_images, D_writer )
+        images = (gen_images + 1)/2.0
+        plot_relevances(relevance_train, images, D_writer )
 
     D_writer.close()
     G_writer.close()

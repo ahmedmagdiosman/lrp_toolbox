@@ -14,7 +14,7 @@ import modules.render as render
 import numpy as np
 import tensorflow as tf
 
-def visualize(relevances, images_tensor=None):
+def visualize(relevances, images_tensor=None, name=''):
     n,w,h, dim = relevances.shape
     heatmaps = []
 
@@ -28,12 +28,12 @@ def visualize(relevances, images_tensor=None):
             maps = render.hm_to_rgb(heat, scaling = 3, sigma = 2)
         heatmaps.append(maps)
     R = np.array(heatmaps)
-    with tf.name_scope('input'):
-        img = tf.summary.image('input', tf.cast(R, tf.float32), n)
+    with tf.name_scope(name):
+        img = tf.summary.image('relevance', tf.cast(R, tf.float32), n)
     return img.eval()
 
 def plot_relevances(rel, img, writer):
-    img_summary = visualize(rel, img)
+    img_summary = visualize(rel, img, writer.get_logdir())
     writer.add_summary(img_summary)
     writer.flush()
 

@@ -131,10 +131,13 @@ def train():
         # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot test images with relevances overlaid
-        
-        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), test_writer )
+        images = test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
+        images = (images + 1)/2.0
+        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), images, test_writer )
         # plot train images with relevances overlaid
-        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), train_writer )
+        images = inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
+        images = (images + 1)/2.0
+        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), images, train_writer )
     
     train_writer.close()
     test_writer.close()

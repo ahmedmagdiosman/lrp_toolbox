@@ -88,11 +88,18 @@ def train():
         train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
         
         if FLAGS.relevance_bool:
-            #RELEVANCE = net.lrp(y, 'simple', 1e-8)
+            RELEVANCE = net.lrp(y, 'simple')
             #RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
-            RELEVANCE = net.lrp(y, 'ww', 1e-8)
+            #RELEVANCE = net.lrp(y, 'ww', 1e-8)
             #RELEVANCE = net.lrp(y, 'flat', 1e-8)
             #RELEVANCE = net.lrp(y, 'alphabeta', 0.5)
+            relevance_layerwise = []
+            R = y
+            pdb.set_trace()
+            for layer in net.modules[::-1]:
+                R = net.lrp_layerwise(layer, R, 'simple')
+                relevance_layerwise.append(R)
+            pdb.set_trace()    
         else:
             RELEVANCE = []
         
@@ -134,9 +141,13 @@ def train():
     # relevances plotted with visually pleasing color schemes
     if FLAGS.relevance_bool:
         # plot test images with relevances overlaid
-        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), test_writer )
+        images = test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
+        images = (images + 1)/2.0
+        plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), images, test_writer )
         # plot train images with relevances overlaid
-        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1]), train_writer )
+        images = inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
+        images = (images + 1)/2.0
+        plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), images, train_writer )
 
     train_writer.close()
     test_writer.close()

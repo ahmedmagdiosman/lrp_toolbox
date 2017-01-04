@@ -149,5 +149,9 @@ class Sequential(Module):
 
         return R
 
+    def lrp_layerwise(self, m, R,lrp_var=None,param=None):
+        R = m.lrp(R,lrp_var,param)
+        return R
+    
     def fit(self,output=None,ground_truth=None,loss='CE', optimizer='Adam', opt_params=[]):
         return Train(output,ground_truth, loss, optimizer, opt_params).train

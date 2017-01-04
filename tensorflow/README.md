@@ -35,8 +35,19 @@ And compute the contributions of the input pixels towards the decision by
 
 the different lrp variants available are:
 
-        'simple','epsilon', 'flat','w^2' and 'alphabeta' 
+        'simple'and 'epsilon'
+        To-do: 'flat','w^2' and 'alphabeta' 
 
+## 4. Compute relevances every layer backwards from the output to the input  
+
+Follow steps (1) from Features mentioned above.
+
+       relevance_layerwise = []
+       R = output
+       for layer in net.modules[::-1]:
+           R = net.lrp_layerwise(layer, R, 'simple')
+           relevance_layerwise.append(R)
+           
 # Examples 
 
 To run the given mnist examples,
@@ -56,6 +67,7 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
 
 # LRP for a pretrained model
 
-Follow steps (1) and (2) from Features mentioned above.
+Follow steps (1) and (3) from Features mentioned above.
+
 
    
