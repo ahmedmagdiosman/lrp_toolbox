@@ -91,7 +91,7 @@ def train():
     with tf.variable_scope('relevance'):    
         if FLAGS.relevance_bool:
             #RELEVANCE = net.lrp(y, 'simple')
-            RELEVANCE = net.lrp(y, 'epsilon', 1e-3)
+            RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
             #RELEVANCE = net.lrp(y, 'ww', 1e-8)
             #RELEVANCE = net.lrp(y, 'flat', 1e-8)
             #RELEVANCE = net.lrp(y, 'alphabeta', 0.5)

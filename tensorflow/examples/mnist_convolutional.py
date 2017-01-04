@@ -89,7 +89,7 @@ def train():
         net = nn()
         y = net.forward(x)
         train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
-
+    with tf.variable_scope('relevance'):
         if FLAGS.relevance_bool:
             #RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
             #RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
@@ -99,17 +99,19 @@ def train():
         else:
             RELEVANCE=[]
         
-        with tf.name_scope('accuracy'):
-            accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1)), tf.float32))
-        tf.summary.scalar('accuracy', accuracy)
+    with tf.name_scope('accuracy'):
+        accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1)), tf.float32))
+    tf.summary.scalar('accuracy', accuracy)
 
     # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
+    tf.global_variables_initializer().run()
     utils = Utils(sess, FLAGS.checkpoint_dir)
-    utils.init_vars()
+    if FLAGS.reload_model:
+        utils.reload_model()
 
     for i in range(FLAGS.max_steps):
         if i % FLAGS.test_every == 0:  # test-set accuracy

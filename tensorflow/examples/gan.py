@@ -126,8 +126,10 @@ def train():
         with tf.variable_scope('generator'):
             G = generator()
             Gout = G.forward(tf.random_normal([FLAGS.batch_size, FLAGS.input_size]))
-    with tf.variable_scope('model/discriminator', reuse=True):
-        D2 = D.forward(Gout)
+            #pdb.set_trace()
+    with tf.variable_scope('model', reuse=True):
+        with tf.variable_scope('discriminator'):
+            D2 = D.forward(Gout)
 
     total_params = tf.trainable_variables()
     D_params = total_params[:D_params_num]
@@ -151,14 +153,16 @@ def train():
     D_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/D')
     G_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/G')
     
+    tf.global_variables_initializer().run()
     utils = Utils(sess, FLAGS.checkpoint_dir)
-    utils.init_vars()
+    if FLAGS.reload_model:
+        utils.reload_model()
     
     for i in range(FLAGS.max_steps):
         d = feed_dict(mnist, True)
         inp = {x:d[0]}
-        pdb.set_trace()
-        _ , dloss, dd1 ,dd2, relevance_train= sess.run([ D_train.train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
+        #pdb.set_trace()
+        D_summary, _ , dloss, dd1 ,dd2, relevance_train= sess.run([ merged, D_train.train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
         _ , gloss, gen_images = sess.run([G_train.train, G_loss, Gout])
         _ , gloss, gen_images = sess.run([G_train.train, G_loss, Gout])
 
@@ -166,8 +170,8 @@ def train():
             print(gloss.mean(), dloss.mean())
             #pdb.set_trace()
         
-        # D_writer.add_summary(D_summary, i)
-        # G_writer.add_summary(G_summary, i)
+        D_writer.add_summary(D_summary, i)
+        #G_writer.add_summary(G_summary, i)
 
     # save model if required
     if FLAGS.save_model:

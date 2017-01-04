@@ -136,7 +136,7 @@ def train():
             RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
         else:
             RELEVANCE = []
-        pdb.set_trace()
+        #pdb.set_trace()
         train = net.fit(output=y,ground_truth=x,loss='MSE',optimizer='adam', opt_params=[FLAGS.learning_rate])
 
         
@@ -145,8 +145,10 @@ def train():
     train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
+    tf.global_variables_initializer().run()
     utils = Utils(sess, FLAGS.checkpoint_dir)
-    utils.init_vars()
+    if FLAGS.reload_model:
+        utils.reload_model()
     
 
     for i in range(FLAGS.max_steps):
