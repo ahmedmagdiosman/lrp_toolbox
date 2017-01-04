@@ -158,9 +158,9 @@ def train():
         d = feed_dict(mnist, True)
         inp = {x:d[0]}
         pdb.set_trace()
-        _ , dloss, dd1 ,dd2, relevance_train= sess.run([ D_train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
-        _ , gloss, gen_images = sess.run([G_train, G_loss, Gout])
-        _ , gloss, gen_images = sess.run([G_train, G_loss, Gout])
+        _ , dloss, dd1 ,dd2, relevance_train= sess.run([ D_train.train, D_loss, D1_loss,D2_loss,D_RELEVANCE], feed_dict=inp)
+        _ , gloss, gen_images = sess.run([G_train.train, G_loss, Gout])
+        _ , gloss, gen_images = sess.run([G_train.train, G_loss, Gout])
 
         if i%100==0:
             print(gloss.mean(), dloss.mean())

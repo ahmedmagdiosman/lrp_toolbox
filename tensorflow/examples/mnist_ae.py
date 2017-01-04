@@ -153,13 +153,13 @@ def train():
         if i % FLAGS.test_every == 0:  # test-set accuracy
             d = feed_dict(mnist, False)
             test_inp = {x:d[0], y_:d[1], keep_prob:d[2]}
-            summary, relevance_test, test_op_imgs= sess.run([merged, RELEVANCE,y], feed_dict=test_inp)
+            summary, loss, relevance_test, test_op_imgs= sess.run([merged, train.cost, RELEVANCE,y], feed_dict=test_inp)
             test_writer.add_summary(summary, i)
-            #print('Loss at step %s: %f' % (i, loss))
+            print('Loss at step %s: %f' % (i, loss))
         else:
             d = feed_dict(mnist, True)
             inp = {x:d[0], y_:d[1], keep_prob:d[2]}
-            summary, _ , relevance_train, op_imgs= sess.run([merged, train, RELEVANCE, y], feed_dict=inp)
+            summary, _ , relevance_train, op_imgs= sess.run([merged, train.train, RELEVANCE, y], feed_dict=inp)
             train_writer.add_summary(summary, i)
     #pdb.set_trace()
     if FLAGS.relevance_bool:

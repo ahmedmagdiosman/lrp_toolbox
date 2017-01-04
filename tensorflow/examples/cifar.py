@@ -175,7 +175,7 @@ def train():
                 print('Accuracy at step %s: %f' % (epoch, np.mean(test_acc)))
             else:
                 inp = {x: ii[0], y_:ii[1], keep_prob:0.8}
-                summary, _ , relevance_train= sess.run([merged, train, RELEVANCE], feed_dict=inp)
+                summary, _ , relevance_train= sess.run([merged, train.train, RELEVANCE], feed_dict=inp)
                 train_writer.add_summary(summary, i)
         # save model if required
     save_model(sess, saver)

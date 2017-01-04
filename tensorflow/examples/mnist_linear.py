@@ -131,7 +131,7 @@ def train():
         else:
             d = feed_dict(mnist, True)
             inp = {x:d[0], y_:d[1], keep_prob:d[2]}
-            summary, _ , relevance_train= sess.run([merged, train, RELEVANCE], feed_dict=inp)
+            summary, _ , relevance_train= sess.run([merged, train.train, RELEVANCE], feed_dict=inp)
             train_writer.add_summary(summary, i)
 
     # save model if required
