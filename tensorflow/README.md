@@ -62,6 +62,9 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
 <img src="doc/images/scalars.png" width="380" height="320">
 <img src="doc/images/images.png" width="380" height="320">
 
+<img src="doc/images/graph.png" width="380" height="320">
+<img src="doc/images/graph1.png" width="380" height="320">
+
 <img src="doc/images/hist.png" width="380" height="320">
 <img src="doc/images/distr.png" width="380" height="320">
 
