@@ -63,7 +63,7 @@ It downloads and extract the mnist datset, runs it on a neural netowrk and plots
 <img src="doc/images/images.png" width="380" height="320">
 
 <img src="doc/images/hist.png" width="380" height="320">
-<img src="doc/images/distributions.png" width="380" height="320">
+<img src="doc/images/distr.png" width="380" height="320">
 
 # LRP for a pretrained model
 
