@@ -85,39 +85,41 @@ def train():
     with tf.variable_scope('model'):
         net = nn()
         y = net.forward(x)
+        #with tf.variable_scope('trainer'):
         train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
         
+    with tf.variable_scope('relevance'):    
         if FLAGS.relevance_bool:
-            RELEVANCE = net.lrp(y, 'simple')
-            #RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
+            #RELEVANCE = net.lrp(y, 'simple')
+            RELEVANCE = net.lrp(y, 'epsilon', 1e-3)
             #RELEVANCE = net.lrp(y, 'ww', 1e-8)
             #RELEVANCE = net.lrp(y, 'flat', 1e-8)
             #RELEVANCE = net.lrp(y, 'alphabeta', 0.5)
-            relevance_layerwise = []
-            R = y
-            pdb.set_trace()
-            for layer in net.modules[::-1]:
-                R = net.lrp_layerwise(layer, R, 'simple')
-                relevance_layerwise.append(R)
-            pdb.set_trace()    
+
+            # LRP layerwise 
+            # relevance_layerwise = []
+            # R = y
+            # for layer in net.modules[::-1]:
+            #     R = net.lrp_layerwise(layer, R, 'simple')
+            #     relevance_layerwise.append(R)
         else:
             RELEVANCE = []
         
-        # Accuracy computation
-        with tf.name_scope('accuracy'):
-            with tf.name_scope('correct_prediction'):
-                correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-            accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        tf.summary.scalar('accuracy', accuracy)
+    # Accuracy computation
+    with tf.name_scope('correct_prediction'):
+        correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    tf.summary.scalar('accuracy', accuracy)
 
     # Merge all the summaries and write them out 
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train', sess.graph)
     test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
-    #saver = init_vars(sess)
+    tf.global_variables_initializer().run()
     utils = Utils(sess, FLAGS.checkpoint_dir)
-    utils.init_vars()
+    if FLAGS.reload_model:
+        utils.reload_model()
 
     # iterate over train and test data
     for i in range(FLAGS.max_steps):

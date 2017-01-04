@@ -18,7 +18,7 @@ class Train():
         if type(self.loss)!=str:
             #assuming loss is already computed and passed as a tensor
             self.cost = tf.reduce_mean(self.loss)
-            tf.summary.scalar('cost', self.cost)
+            tf.summary.scalar('Loss', self.cost)
         else:
             self.compute_cost()
         
@@ -31,22 +31,20 @@ class Train():
             #Cross Entropy loss:
             with tf.name_scope('cross_entropy'):
                 diff = tf.nn.softmax_cross_entropy_with_logits(self.output, self.ground_truth)
-                with tf.name_scope('total'):
-                    self.cost = tf.reduce_mean(diff)
-            tf.summary.scalar('cross entropy', self.cost)
+                self.cost = tf.reduce_mean(diff)
+
 
         if self.loss=='sigmoid_crossentropy':
             #Cross Entropy loss:
             with tf.name_scope('cross_entropy'):
                 diff = tf.nn.sigmoid_cross_entropy_with_logits(self.output, self.ground_truth)
-                with tf.name_scope('total'):
-                    self.cost = tf.reduce_mean(diff)
-            tf.summary.scalar('cross entropy', self.cost)
+                self.cost = tf.reduce_mean(diff)
+
         
         if self.loss=='MSE':
             with tf.name_scope('mse_loss'):
                 self.cost = tf.sqrt(tf.reduce_mean(tf.square(tf.sub(self.output, self.ground_truth))))
-            tf.summary.scalar('mse_loss', self.cost)
+        tf.summary.scalar('Loss', self.cost)
     
 
     def optimize(self):

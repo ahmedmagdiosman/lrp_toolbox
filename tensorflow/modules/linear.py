@@ -31,9 +31,9 @@ class Linear(Module):
         
         
         self.weights_shape = [self.input_dim, self.output_dim]
-        with tf.variable_scope(self.name):
-            self.weights = variables.weights(self.weights_shape)
-            self.biases = variables.biases(self.output_dim)
+        #with tf.name_scope(self.name):
+        self.weights = variables.weights(self.weights_shape, name=self.name)
+        self.biases = variables.biases(self.output_dim, name=self.name)
 
     def forward(self, input_tensor, batch_size=10, img_dim=28):
         self.input_tensor = input_tensor
@@ -43,12 +43,14 @@ class Linear(Module):
         if len(inp_shape)!=2:
             import numpy as np
             self.input_tensor = tf.reshape(self.input_tensor,[batch_size, np.prod(inp_shape[1:])])
-
+        #import pdb;pdb.set_trace()
         with tf.name_scope(self.name):
-            linear = tf.matmul(self.input_tensor, self.weights)
-            self.activations = tf.nn.bias_add(linear, self.biases)
+            self.activations = tf.nn.bias_add(tf.matmul(self.input_tensor, self.weights), self.biases, name=self.name)
             #activations = activation_fn(conv, name='activation')
             tf.summary.histogram('activations', self.activations)
+            tf.summary.histogram('weights', self.weights)
+            tf.summary.histogram('biases', self.biases)
+            
         return self.activations
 
     def check_input_shape(self):
@@ -98,8 +100,8 @@ class Linear(Module):
         Z = tf.expand_dims(self.weights, 0) * tf.expand_dims(self.input_tensor, -1)
         Zs = tf.expand_dims(tf.reduce_sum(Z, 1), 1) + tf.expand_dims(tf.expand_dims(self.biases, 0), 0)
         Zs += epsilon * tf.select(tf.greater_equal(Zs,0), tf.ones_like(Zs)*-1, tf.ones_like(Zs))
+
         return tf.reduce_sum((Z / Zs) * tf.expand_dims(self.R, 1),2)
-        
 
     def _alphabeta_lrp(self,R,alpha):
         '''

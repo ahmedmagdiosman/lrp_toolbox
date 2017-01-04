@@ -57,12 +57,10 @@ class Utils():
         self.name = name
         self.session = session
         self.checkpoint_dir = checkpoint_dir
+        self.saver = tf.train.Saver()
         
 
-    def init_vars(self):
-        self.saver = tf.train.Saver()
-        #tf.initialize_all_variables().run()
-        tf.global_variables_initializer().run()
+    def reload_model(self):
         if self.checkpoint_dir is not None:
             ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
             if ckpt and ckpt.model_checkpoint_path:

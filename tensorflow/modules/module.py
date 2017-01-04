@@ -110,13 +110,19 @@ class Module:
             param = self.lrp_param
 
         if lrp_var is None or lrp_var.lower() == 'none' or lrp_var.lower() == 'simple':
-            return self._simple_lrp(R)
+            with tf.name_scope(self.name+'_simple_relevance'):
+                Rx = self._simple_lrp(R)
+            tf.summary.histogram(self.name, Rx)
+            return Rx
         elif lrp_var.lower() == 'flat':
             return self._flat_lrp(R)
         elif lrp_var.lower() == 'ww' or lrp_var.lower() == 'w^2':
             return self._ww_lrp(R)
         elif lrp_var.lower() == 'epsilon':
-            return self._epsilon_lrp(R,param)
+            with tf.name_scope(self.name+'_epsilon_relevance'):
+                Rx = self._epsilon_lrp(R,param)
+            tf.summary.histogram(self.name, Rx)
+            return Rx
         elif lrp_var.lower() == 'alphabeta' or lrp_var.lower() == 'alpha':
             return self._alphabeta_lrp(R,param)
         else:

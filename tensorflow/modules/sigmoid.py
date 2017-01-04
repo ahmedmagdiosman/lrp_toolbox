@@ -41,4 +41,6 @@ class Sigmoid(Module):
         # ->
         # just propagate R further down.
         # makes sure subroutines never get called.
+        
+        tf.summary.histogram(self.name, R)
         return R

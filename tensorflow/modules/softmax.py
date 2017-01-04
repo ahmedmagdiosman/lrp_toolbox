@@ -29,7 +29,7 @@ class Softmax(Module):
         with tf.name_scope(self.name):
             #with tf.name_scope('activations'):
             self.activations = tf.nn.softmax(self.input_tensor, name=self.name)
-            tf.summary.histogram(self.name + '/activations', self.activations)
+            tf.summary.histogram('activations', self.activations)
         return self.activations
 
     def clean(self):
@@ -41,5 +41,8 @@ class Softmax(Module):
         # just propagate R further down.
         # makes sure subroutines never get called.
         self.R = R
-        return self.R  * self.input_tensor
+        Rx = self.R  * self.input_tensor
+        tf.summary.histogram(self.name, Rx)
+        return Rx
+    
         #return tf.nn.softmax(self.activations) * self.input_tensor
