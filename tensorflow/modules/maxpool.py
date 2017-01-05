@@ -32,6 +32,7 @@ class MaxPool(Module):
         with tf.name_scope(self.name):
             self.activations = tf.nn.max_pool(self.input_tensor, ksize=self.pool_size,strides=self.pool_stride,padding=self.pad, name=self.name )
             tf.summary.histogram('activations', self.activations)
+
         return self.activations
 
     def clean(self):

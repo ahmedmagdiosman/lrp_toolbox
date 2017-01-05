@@ -34,16 +34,19 @@ class Train():
                 self.cost = tf.reduce_mean(diff)
 
 
-        if self.loss=='sigmoid_crossentropy':
+        elif self.loss=='sigmoid_crossentropy':
             #Cross Entropy loss:
             with tf.name_scope('cross_entropy'):
                 diff = tf.nn.sigmoid_cross_entropy_with_logits(self.output, self.ground_truth)
                 self.cost = tf.reduce_mean(diff)
 
         
-        if self.loss=='MSE':
+        elif self.loss=='MSE':
             with tf.name_scope('mse_loss'):
                 self.cost = tf.sqrt(tf.reduce_mean(tf.square(tf.sub(self.output, self.ground_truth))))
+        else:
+            print 'Loss should be one of [softmax_crossentropy, sigmoid_crossentropy, MSE] '
+            print 'If not define your own loss'
         tf.summary.scalar('Loss', self.cost)
     
 
@@ -53,15 +56,17 @@ class Train():
             if self.optimizer == 'adam':
                 self.train = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)
 
-            if self.optimizer == 'rmsprop':
+            elif self.optimizer == 'rmsprop':
                 self.train = tf.train.AdamOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)
 
-            if self.optimizer == 'grad_descent':
+            elif self.optimizer == 'grad_descent':
                 self.train = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)
-            if self.optimizer == 'adagrad':
+            elif self.optimizer == 'adagrad':
                 self.train = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)
 
-            if self.optimizer == 'adadelta':
+            elif self.optimizer == 'adadelta':
                 self.train = tf.train.AdadeltaOptimizer(self.learning_rate).minimize(self.cost, var_list=self.var_list)
+            else:
+                print 'Optimizer should be one of: [adam, adagrad, adadelta, grad_descent, rmsprop]'
 
-
+                

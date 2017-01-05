@@ -21,14 +21,14 @@ class Linear(Module):
     Linear Layer
     '''
 
-    def __init__(self, input_dim, output_dim, input_shape=(10,784), activation_bool=False, activation_fn=tf.nn.relu,name="linear"):
+    def __init__(self, input_dim, output_dim, input_shape=(10,784), keep_prob=1.0, name="linear"):
         self.name = name
         Module.__init__(self)
 
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.input_shape = input_shape
-        
+        self.keep_prob = keep_prob
         
         self.weights_shape = [self.input_dim, self.output_dim]
         #with tf.name_scope(self.name):
@@ -46,6 +46,7 @@ class Linear(Module):
         #import pdb;pdb.set_trace()
         with tf.name_scope(self.name):
             self.activations = tf.nn.bias_add(tf.matmul(self.input_tensor, self.weights), self.biases, name=self.name)
+            self.activations = tf.nn.dropout(self.activations, keep_prob=self.keep_prob)
             #activations = activation_fn(conv, name='activation')
             tf.summary.histogram('activations', self.activations)
             tf.summary.histogram('weights', self.weights)

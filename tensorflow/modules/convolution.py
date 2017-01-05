@@ -21,7 +21,7 @@ class Convolution(Module):
     Convolutional Layer
     '''
 
-    def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), activation_bool=False, activation_fn=tf.nn.relu, pad = 'SAME',name="conv2d"):
+    def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), keep_prob=1.0, pad = 'SAME',name="conv2d"):
         self.name = name
         Module.__init__(self)
         
@@ -32,6 +32,7 @@ class Convolution(Module):
         self.output_dim = output_dim
         self.kernel_size = kernel_size
         self.stride_size = stride_size
+        self.keep_prob = keep_prob
         
         self.weights_shape = [self.kernel_size[0], self.kernel_size[1], self.input_dim, self.output_dim]
         self.strides = [1,self.stride_size[0], self.stride_size[1],1]
@@ -58,7 +59,12 @@ class Convolution(Module):
         with tf.name_scope(self.name):
             conv = tf.nn.conv2d(self.input_tensor, self.weights, strides = self.strides, padding=self.pad)
             self.activations = tf.reshape(tf.nn.bias_add(conv, self.biases), [-1]+conv.get_shape().as_list()[1:])
+            if self.keep_prob<1.0:
+                self.activations = tf.nn.dropout(self.activations, keep_prob=self.keep_prob)
             tf.summary.histogram('activations', self.activations)
+            tf.summary.histogram('weights', self.weights)
+            tf.summary.histogram('biases', self.biases)
+
         return self.activations
 
         
@@ -66,14 +72,12 @@ class Convolution(Module):
         '''
         LRP according to Eq(56) in DOI: 10.1371/journal.pone.0130140
         '''
-
+        
         self.R = R
         R_shape = self.R.get_shape().as_list()
         if len(R_shape)!=4:
             activations_shape = self.activations.get_shape().as_list()
             self.R = tf.reshape(self.R, [-1]+activations_shape[1:])
-
-        
 
         N,Hout,Wout,NF = self.R.get_shape().as_list()
         hf,wf,df,NF = self.weights_shape
@@ -97,7 +101,7 @@ class Convolution(Module):
             for j in xrange(Wout):
                 input_slice = self.pad_input_tensor[:, i*hstride:i*hstride+hf , j*wstride:j*wstride+wf , : ]
                 term2 =  tf.expand_dims(input_slice, -1)
-                #pdb.set_trace()
+                pdb.set_trace()
                 Z = term1 * term2
                 t1 = tf.reduce_sum(Z, [1,2,3], keep_dims=True)
                 Zs = t1 + t2
@@ -111,8 +115,6 @@ class Convolution(Module):
                 pad_left = i*hstride
                 pad_bottom = pad_in_w - (j*wstride+wf) if ( pad_in_w - (j*wstride+wf) > 0) else 0
                 pad_up = j*wstride
-                if pad_left <0 or pad_right <0 or pad_up <0 or pad_bottom <0:
-                    pdb.set_trace()
                 result = tf.pad(result, [[0,0],[pad_left, pad_right],[pad_up, pad_bottom],[0,0]], "CONSTANT")
                 Rx+= result
         return Rx[:, (pr/2):in_h+(pr/2), (pc/2):in_w+(pc/2),:]

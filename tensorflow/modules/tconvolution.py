@@ -22,7 +22,7 @@ class Tconvolution(Module):
     Convolutional transpose Layer
     '''
 
-    def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), activation_bool=False, activation_fn=tf.nn.relu, pad = 'SAME',name="deconv2d"):
+    def __init__(self, input_dim=3, output_dim=64, input_shape = (10,28), kernel_size=(5,5), stride_size=(2,2), keep_prob=1.0, pad = 'SAME',name="deconv2d"):
         self.name = name
         Module.__init__(self)
         
@@ -33,6 +33,7 @@ class Tconvolution(Module):
         self.output_dim = output_dim
         self.kernel_size = kernel_size
         self.stride_size = stride_size
+        self.keep_prob = keep_prob
         
         self.weights_shape = [self.kernel_size[0], self.kernel_size[1], self.output_dim, self.input_dim ]
         self.strides = [1,self.stride_size[0], self.stride_size[1],1]
@@ -70,7 +71,10 @@ class Tconvolution(Module):
             #deconv = tf.nn.atrous_conv2d(self.input_tensor, self.weights, rate=2, padding='SAME')
             deconv = tf.nn.conv2d_transpose(self.input_tensor, self.weights, output_shape=output_shape, strides = self.strides, padding=self.pad)
             self.activations = tf.reshape(tf.nn.bias_add(deconv, self.biases), [-1]+deconv.get_shape().as_list()[1:])
+            if self.keep_prob<1.0:
+                self.activations = tf.nn.dropout(self.activations, keep_prob=self.keep_prob)
             tf.summary.histogram('activations', self.activations)
+            
         return self.activations
 
         

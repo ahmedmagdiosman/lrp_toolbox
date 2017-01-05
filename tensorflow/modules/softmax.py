@@ -42,7 +42,8 @@ class Softmax(Module):
         # makes sure subroutines never get called.
         self.R = R
         Rx = self.R  * self.input_tensor
+        #Rx = tf.nn.softmax(self.activations) * self.activations
         tf.summary.histogram(self.name, Rx)
         return Rx
     
-        #return tf.nn.softmax(self.activations) * self.input_tensor
+    

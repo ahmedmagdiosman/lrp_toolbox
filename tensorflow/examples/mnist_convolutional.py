@@ -53,7 +53,8 @@ FLAGS = flags.FLAGS
 
 
 def nn():
-    return Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28)), 
+    return Sequential([Convolution(input_dim=1,output_dim=32,input_shape=(FLAGS.batch_size, 28)),
+                    
                      MaxPool(),
                      Tanh(),
                      Convolution(input_dim=32,output_dim=64),
@@ -71,7 +72,8 @@ def feed_dict(mnist, train):
     else:
         xs, ys = mnist.test.next_batch(FLAGS.batch_size)
         k = 1.0
-    return (2*xs)-1, ys, k
+    #return (2*xs)-1, ys, k
+    return xs, ys, k
 
 
 def train():
@@ -91,11 +93,18 @@ def train():
         train = net.fit(output=y,ground_truth=y_,loss='softmax_crossentropy',optimizer='adam', opt_params=[FLAGS.learning_rate])
     with tf.variable_scope('relevance'):
         if FLAGS.relevance_bool:
-            #RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
+            RELEVANCE = net.lrp(y, FLAGS.relevance_method, 1.0)
             #RELEVANCE = net.lrp(y, 'epsilon', 1e-8)
-            RELEVANCE = net.lrp(y, 'ww', 0)
+            #RELEVANCE = net.lrp(y, 'ww', 0)
             #RELEVANCE = net.lrp(y, 'flat', 0)
             #RELEVANCE = net.lrp(y, 'alphabeta', 0.7)
+
+            relevance_layerwise = []
+            R = y
+            for layer in net.modules[::-1]:
+                R = net.lrp_layerwise(layer, R, 'simple')
+                relevance_layerwise.append(R)
+
         else:
             RELEVANCE=[]
         
@@ -123,8 +132,9 @@ def train():
         else:  
             d = feed_dict(mnist, True)
             inp = {x:d[0], y_: d[1], keep_prob: d[2]}
-            summary, _ , relevance_train= sess.run([merged, train.train, RELEVANCE], feed_dict=inp)
+            summary, _ , relevance_train, rel_layer= sess.run([merged, train.train, RELEVANCE, relevance_layerwise], feed_dict=inp)
             train_writer.add_summary(summary, i)
+            pdb.set_trace()
 
     # save model if required
     if FLAGS.save_model:
@@ -134,11 +144,11 @@ def train():
     if FLAGS.relevance_bool:
         # plot test images with relevances overlaid
         images = test_inp[test_inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
-        images = (images + 1)/2.0
+        #images = (images + 1)/2.0
         plot_relevances(relevance_test.reshape([FLAGS.batch_size,28,28,1]), images, test_writer )
         # plot train images with relevances overlaid
         images = inp[inp.keys()[0]].reshape([FLAGS.batch_size,28,28,1])
-        images = (images + 1)/2.0
+        #images = (images + 1)/2.0
         plot_relevances(relevance_train.reshape([FLAGS.batch_size,28,28,1]), images, train_writer )
     
     train_writer.close()
